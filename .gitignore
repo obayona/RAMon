@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+.env
+
+# Scraper generated output
+tools/scrapper/products.csv
+tools/scrapper/products_processed.csv
+tools/scrapper/products.txt
+
+# Scraper downloaded reference data
+tools/scrapper/tienda.html
+
+# Editor / OS
+.DS_Store
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
