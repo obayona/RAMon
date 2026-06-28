@@ -12,7 +12,7 @@ from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
 from pinecone import Pinecone
 from openai import OpenAI
-from langchain_community.tools.tavily_search import TavilySearchResults
+from langchain_tavily import TavilySearch
 
 load_dotenv()
 
@@ -145,9 +145,9 @@ def recommend_products(
          filter=metadata_filter or None,
     )
     return json.dumps([{"id": m.id, **m.metadata, "score": m.score} for m in results.matches])
-
-    # --- Mock implementation ---
     '''
+    # --- Mock implementation ---
+
     query_lower = query.lower()
     query_words = query_lower.split()
 
@@ -180,8 +180,8 @@ def search_component_spec(component_model: str) -> str:
     Use when a user asks about compatibility with their own motherboard, CPU, GPU or other
     component so that you can compare specs against the product they are currently viewing."""
     try:
-        tavily = TavilySearchResults(max_results=3)
-        results = tavily.invoke({"query": f"{component_model} technical specifications specs"})
+        tavily_search = TavilySearch(max_results=5, topic="general")
+        results = tavily_search.invoke({"query": f"{component_model} technical specifications specs"})
         return json.dumps(results, indent=2)
     except Exception as exc:
         return (
@@ -212,6 +212,8 @@ SYSTEM_PROMPT = (
     "YouTube\", \"gaming\") into precise technical search terms like 'Intel Core i3 or Ryzen 3 processor, "
     "8GB RAM, 256GB SSD, long battery life' and call recommend_products. "
     "Extract budget constraints from the query and pass them as min_price / max_price.\n"
+    "If there are not budget constrians, but the user is still asking for a product, use the "
+    "search_component_spec tool with None params for the price ranges, remember the price is optional"
     "3. If the question is general or you already have enough facts, answer directly without "
     "calling tools.\n"
     "4. If you need more details from the user, ask clarifying questions before invoking tools.\n"
