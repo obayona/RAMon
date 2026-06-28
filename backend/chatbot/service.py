@@ -2,7 +2,7 @@ import os
 from typing import Any, Dict, Generator, List, Optional
 
 from dotenv import load_dotenv
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, AIMessage
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph.state import CompiledStateGraph
@@ -88,36 +88,54 @@ class ChatbotService:
             "messages": [HumanMessage(content=message)],
             "current_product": current_product,
             "recommendations": [],
+            "structured_response": None,
         }
         return self._app.invoke(state, {"configurable": {"thread_id": thread_id}})
 
     def stream(
         self,
         message: str,
-        current_product: Optional[Product] = None,
+        current_product: Optional[Dict[str, Any]] = None,
         thread_id: str = "default",
     ) -> Generator[Dict[str, Any], None, None]:
-        """Yield node-level state snapshots as the graph executes."""
+        """
+        Streams text tokens in real-time, followed by an end-of-stream payload 
+        containing structured data if recommendations were made.
+        """
         state: AgentState = {
             "messages": [HumanMessage(content=message)],
             "current_product": current_product,
             "recommendations": [],
+            "structured_response": None,
         }
-        yield from self._app.stream(
-            state,
-            {"configurable": {"thread_id": thread_id}},
-            stream_mode="values",
-        )
+        
+        config = {"configurable": {"thread_id": thread_id}}
 
-    def get_recommendations(self, thread_id: str = "default") -> List[Product]:
-        """Return the ``recommendations`` stored for a given thread."""
-        try:
-            snapshot = self._app.get_state(
-                {"configurable": {"thread_id": thread_id}}
-            )
-            return snapshot.values.get("recommendations", [])
-        except (KeyError, AttributeError):
-            return []
+        # Use multiple stream modes simultaneously
+        # 'messages' gives us real-time LLM tokens
+        # 'updates' lets us capture state attributes when nodes finish
+        for msg, metadata in self._app.stream(
+            state,
+            config,
+            stream_mode='messages',
+        ):
+            # Extract and yield raw text tokens as they stream from OpenAI
+            if msg.content and isinstance(msg, AIMessage):
+                yield {
+                    "type": "text",
+                    "content": msg.content
+                }
+
+        # Read the final overall state directly from memory/checkpoint store
+        final_state = self._app.get_state(config)
+        recommendations = final_state.values.get("recommendations", [])
+
+        if recommendations:
+            yield {
+                "type": "ui_data",
+                "layout": "carousel",
+                "products": recommendations
+            }
 
     @property
     def compiled_graph(self) -> CompiledStateGraph:

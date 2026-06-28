@@ -1,7 +1,7 @@
 import json
 from typing import Any, Dict, List, Literal
 
-from langchain_core.messages import SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
 from langchain_core.tools import BaseTool
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
@@ -19,9 +19,14 @@ SYSTEM_PROMPT = (
     "2. If the user wants product recommendations, translate vague requirements (\"watching "
     "YouTube\", \"gaming\") into precise technical search terms and call recommend_products. "
     "Extract budget constraints from the query and pass them as min_price / max_price.\n"
-    "3. If the question is general or you already have enough facts, answer directly without "
+    "3. When you have finished processing tool results and are ready to present product "
+    "recommendations, write ONLY a short conversational sentence (e.g. \"Here are some "
+    "laptops that match your needs.\") without listing product names, prices, or "
+    "descriptions. The product data is delivered separately through a structured channel "
+    "so the frontend can render it as a nice list — you must not duplicate it in your text.\n"
+    "4. If the question is general or you already have enough facts, answer directly without "
     "calling tools.\n"
-    "4. If you need more details from the user, ask clarifying questions before invoking tools.\n"
+    "5. If you need more details from the user, ask clarifying questions before invoking tools.\n"
     "Be concise, technical, and helpful."
 )
 
@@ -39,21 +44,49 @@ def _build_system_message(product: Product | None = None) -> str:
         )
     return prompt
 
-
 def _process_tool_results(state: AgentState) -> Dict[str, Any]:
+    """
+    Extracts the tool output, updates the structured recommendations state,
+    and appends a hidden system message so the LLM remembers what was recommended.
+    """
     for msg in reversed(state["messages"]):
         if isinstance(msg, ToolMessage) and msg.name == "recommend_products":
             try:
                 parsed = json.loads(msg.content)
-                if isinstance(parsed, list):
-                    return {"recommendations": parsed}
+                if isinstance(parsed, list) and len(parsed) > 0:
+                    
+                    # Create a compact string version for the LLM's memory bank
+                    # We map only essential fields to keep the context window clean
+                    compact_products = [
+                        {
+                            "id": p.get("id"), 
+                            "name": p.get("name"), 
+                            "price": p.get("price")
+                        } 
+                        for p in parsed
+                    ]
+                    
+                    # Construct the hidden system instruction
+                    memory_message = SystemMessage(
+                        content=(
+                            f"[SYSTEM MEMORY: You just recommended the following products to the user: "
+                            f"{json.dumps(compact_products)}. Use this context if the user asks follow-up questions "
+                            f"comparing them or referencing them.]"
+                        )
+                    )
+
+                    return {
+                        "recommendations": parsed,
+                        "messages": [memory_message]
+                    }
+                    
             except (json.JSONDecodeError, TypeError):
                 pass
             break
+            
     return {}
 
-
-def _should_continue(state: AgentState) -> Literal["tools", "__end__"]:
+def _should_continue(state: AgentState) -> Literal["tools", END]:
     last = state["messages"][-1]
     if hasattr(last, "tool_calls") and last.tool_calls:
         return "tools"
