@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>RAMon Chatbot</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #f1f5f9; display: flex; justify-content: center; min-height: 100vh; }
+    .container { width: min(800px, 100%); padding: 1.5rem; display: flex; flex-direction: column; }
+    h1 { font-size: 1.5rem; margin-bottom: 1rem; color: #0f172a; }
+    #chat { flex: 1; background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.1); padding: 1rem; overflow-y: auto; display: flex; flex-direction: column; gap: .75rem; min-height: 60vh; max-height: 70vh; }
+    .msg { max-width: 80%; padding: .6rem 1rem; border-radius: 16px; line-height: 1.45; font-size: .95rem; }
+    .human { align-self: flex-end; background: #3b82f6; color: #fff; border-bottom-right-radius: 4px; }
+    .ai { align-self: flex-start; background: #f1f5f9; color: #0f172a; border-bottom-left-radius: 4px; }
+    .tool { align-self: center; background: #fef9c3; color: #92400e; font-size: .8rem; padding: .35rem .85rem; border-radius: 20px; max-width: 90%; }
+    .products { align-self: flex-start; width: 100%; display: flex; flex-wrap: wrap; gap: .75rem; margin-top: .25rem; }
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: .8rem; flex: 1 1 200px; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+    .card h3 { font-size: .95rem; color: #0f172a; }
+    .card p { font-size: .82rem; color: #475569; margin-top: .3rem; }
+    .card .price { font-weight: 600; color: #059669; margin-top: .4rem; }
+    form { display: flex; gap: .5rem; margin-top: 1rem; }
+    input { flex: 1; padding: .7rem 1rem; border: 1px solid #cbd5e1; border-radius: 24px; font-size: .95rem; outline: none; }
+    input:focus { border-color: #3b82f6; }
+    button { background: #3b82f6; color: #fff; border: none; border-radius: 24px; padding: .7rem 1.4rem; font-weight: 600; cursor: pointer; }
+    button:hover { background: #2563eb; }
+    .typing { align-self: flex-start; color: #94a3b8; font-size: .85rem; padding: .4rem 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>RAMon — Hardware Assistant</h1>
+    <div id="chat"></div>
+    <form onsubmit="sendMessage(event)">
+      <input type="text" id="msgInput" placeholder="Ask about products or compatibility\u2026" autocomplete="off" />
+      <button type="submit">Send</button>
+    </form>
+  </div>
+  <script>
+    const chat   = document.getElementById('chat');
+    const input  = document.getElementById('msgInput');
+    const chatId = 'chat-' + Date.now();
+    let ws;
+
+    function connect() {
+      ws = new WebSocket('ws://' + location.host + '/ws');
+      ws.onopen = () => console.log('connected');
+      ws.onclose = () => { setTimeout(connect, 2000); };
+      ws.onmessage = event => {
+        const data = JSON.parse(event.data);
+        console.log(data)
+
+        if (data.type === 'text') {
+          removeTyping();
+          const id = data.id;
+          let el = document.querySelector('.msg[data-msg-id="' + id + '"]');
+          if (!el) {
+            el = document.createElement('div');
+            el.className = 'msg ai';
+            el.setAttribute('data-msg-id', id);
+            chat.appendChild(el);
+          }
+          el.textContent += data.content || '';
+          chat.scrollTop = chat.scrollHeight;
+        }
+
+        if (data.type === 'ui_data') {
+          removeTyping();
+          renderProducts(data.products);
+        }
+      };
+    }
+
+    function removeTyping() {
+      const t = chat.querySelector('.typing');
+      if (t) t.remove();
+    }
+
+    function renderProducts(products) {
+      if (!products || !products.length) return;
+      const container = document.createElement('div');
+      container.className = 'products';
+      products.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = '<h3>' + esc(p.name) + '</h3><p>' + esc((p.description || '').slice(0, 100)) + '</p><div class="price">$' + (p.price || 0).toFixed(2) + '</div>';
+        container.appendChild(card);
+      });
+      chat.appendChild(container);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+    function sendMessage(e) {
+      e.preventDefault();
+      const msg = input.value.trim();
+      if (!msg) return;
+      appendMsg(msg, 'human');
+      removeTyping();
+      const typing = document.createElement('div');
+      typing.className = 'typing';
+      typing.textContent = 'Assistant is thinking\u2026';
+      chat.appendChild(typing);
+      chat.scrollTop = chat.scrollHeight;
+      ws.send(JSON.stringify({ message: msg, chat_id: chatId }));
+      input.value = '';
+    }
+
+    function appendMsg(text, cls) {
+      const el = document.createElement('div');
+      el.className = 'msg ' + cls;
+      el.textContent = text;
+      chat.appendChild(el);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    connect();
+  </script>
+</body>
+</html>

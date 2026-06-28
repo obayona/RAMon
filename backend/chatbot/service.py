@@ -92,7 +92,7 @@ class ChatbotService:
         }
         return self._app.invoke(state, {"configurable": {"thread_id": thread_id}})
 
-    def stream(
+    async def stream(
         self,
         message: str,
         current_product: Optional[Dict[str, Any]] = None,
@@ -111,17 +111,23 @@ class ChatbotService:
         
         config = {"configurable": {"thread_id": thread_id}}
 
+        message_id: Optional[str] = None
+
         # Use multiple stream modes simultaneously
         # 'messages' gives us real-time LLM tokens
         # 'updates' lets us capture state attributes when nodes finish
-        for msg, metadata in self._app.stream(
+        async for msg, metadata in self._app.astream(
             state,
             config,
             stream_mode='messages',
         ):
             # Extract and yield raw text tokens as they stream from OpenAI
             if msg.content and isinstance(msg, AIMessage):
+                if not message_id:
+                    message_id = metadata.get("run_id") or getattr(msg, "id", None)
+
                 yield {
+                    "id": message_id,
                     "type": "text",
                     "content": msg.content
                 }
@@ -132,6 +138,7 @@ class ChatbotService:
 
         if recommendations:
             yield {
+                "id": message_id or f"ui-{thread_id}",
                 "type": "ui_data",
                 "layout": "carousel",
                 "products": recommendations
