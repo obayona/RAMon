@@ -15,4 +15,3 @@ class AgentState(TypedDict):
     messages: Annotated[list, add_messages]
     current_product: Optional[Product]
     recommendations: List[Product]
-    structured_response: Optional[Dict[str, Any]]

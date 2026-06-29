@@ -1,21 +1,68 @@
 import json
 import logging
-
+import os
+from dotenv import load_dotenv
+from contextlib import asynccontextmanager
+from langchain_core.messages import HumanMessage, AIMessage
 from fastapi.responses import FileResponse
 from fastapi import FastAPI, WebSocket
-from fastapi.responses import HTMLResponse
+from langchain_core.messages import BaseMessage, messages_to_dict
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
+from chatbot.service import ChatbotService
 
 logger = logging.getLogger("ramon.server")
 
-from chatbot.service import ChatbotService
+load_dotenv()
 
-svc = ChatbotService()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with AsyncSqliteSaver.from_conn_string(os.getenv("SQLITE_PATH")) as checkpointer:
+        app.state.checkpointer = checkpointer
+        app.state.svc = ChatbotService(
+            openai_api_key = os.getenv("OPENAI_API_KEY"),
+            pinecone_api_key = os.getenv("PINECONE_API_KEY"),
+            tavily_api_key = os.getenv("TAVILY_API_KEY"),
+            checkpointer=checkpointer
+        )
+        
+        yield
 
-app = FastAPI(title="RAMon Chatbot")
+app = FastAPI(title="RAMon Chatbot", lifespan=lifespan)
 
 @app.get("/")
 async def root():
     return FileResponse("index.html")
+
+@app.get("/thread/{thread_id}")
+async def get_chat(thread_id: str):
+    config = {"configurable": {"thread_id": thread_id}}
+    state = await app.state.svc.compiled_graph.aget_state(config)
+    print(state)
+    if not state:
+        raise HTTPException(status_code=404, detail="Chat not found")
+
+    if  "messages" not in state.values:
+        raise HTTPException(status_code=404, detail="Chat not found")
+
+    messages = []
+    for msg in state.values["messages"]:
+        if isinstance(msg, AIMessage) and not msg.tool_calls:
+            messages.append({
+                "id": msg.id,
+                "type": "ai",
+                "text": msg.content,
+                "ui_data": msg.additional_kwargs.get("ui_payload") 
+            })
+        if isinstance(msg, HumanMessage):
+            messages.append({
+                "id": msg.id,
+                "type": "human",
+                "text": msg.content,
+            })
+        
+
+    return messages
 
 @app.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
@@ -36,7 +83,7 @@ async def websocket_endpoint(ws: WebSocket):
                 await ws.send_json({"type": "error", "content": "empty message"})
                 continue
 
-            async for snapshot in svc.stream(
+            async for snapshot in app.state.svc.stream(
                 message=message,
                 current_product=product,
                 thread_id=chat_id,

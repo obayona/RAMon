@@ -46,40 +46,16 @@ def _build_system_message(product: Product | None = None) -> str:
 
 def _process_tool_results(state: AgentState) -> Dict[str, Any]:
     """
-    Extracts the tool output, updates the structured recommendations state,
-    and appends a hidden system message so the LLM remembers what was recommended.
+    Extracts the tool output, updates the structured recommendations state
     """
     for msg in reversed(state["messages"]):
         if isinstance(msg, ToolMessage) and msg.name == "recommend_products":
             try:
                 parsed = json.loads(msg.content)
                 if isinstance(parsed, list) and len(parsed) > 0:
-                    
-                    # Create a compact string version for the LLM's memory bank
-                    # We map only essential fields to keep the context window clean
-                    compact_products = [
-                        {
-                            "id": p.get("id"), 
-                            "name": p.get("name"), 
-                            "price": p.get("price")
-                        } 
-                        for p in parsed
-                    ]
-                    
-                    # Construct the hidden system instruction
-                    memory_message = SystemMessage(
-                        content=(
-                            f"[SYSTEM MEMORY: You just recommended the following products to the user: "
-                            f"{json.dumps(compact_products)}. Use this context if the user asks follow-up questions "
-                            f"comparing them or referencing them.]"
-                        )
-                    )
-
                     return {
                         "recommendations": parsed,
-                        "messages": [memory_message]
                     }
-                    
             except (json.JSONDecodeError, TypeError):
                 pass
             break
@@ -98,6 +74,13 @@ def _make_chatbot_node(bound_model: ChatOpenAI):
         prompt = _build_system_message(state.get("current_product"))
         messages = [SystemMessage(content=prompt)] + state["messages"]
         response = bound_model.invoke(messages)
+
+        if state.get("recommendations"):
+            response.additional_kwargs["ui_payload"] = {
+                "layout": "carousel",
+                "products": state["recommendations"]
+            }
+
         return {"messages": [response]}
 
     return chatbot
