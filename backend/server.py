@@ -1,86 +1,41 @@
 import json
 import logging
-import os
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-from fastapi import (Depends, FastAPI, HTTPException, Request, WebSocket,
+from fastapi import (Depends, FastAPI, HTTPException, WebSocket,
                      WebSocketException)
 from fastapi.responses import FileResponse
 from starlette import status
-from langchain_openai import ChatOpenAI
-from langchain_tavily import TavilySearch
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
-from openai import OpenAI
-from pinecone import Pinecone
 
-from chatbot.product_catalog import PineconeProductCatalog, ProductCatalog
+from chatbot.config import ChatbotSettings, ConfigError
+from chatbot.factory import build_chatbot_components
+from chatbot.dependencies import (
+    get_chatbot_service,
+    get_chatbot_service_ws,
+    get_product_catalog,
+    get_product_catalog_ws,
+)
+from chatbot.product_catalog import ProductCatalog
 from chatbot.service import ChatNotFoundError, ChatbotService
 
 logger = logging.getLogger("ramon.server")
 
 load_dotenv()
-
-
-def _require_env(key: str) -> str:
-    value = os.getenv(key)
-    if not value:
-        raise RuntimeError(f"Environment variable '{key}' is required")
-    return value
-
-
-def _get_chatbot_service(app: FastAPI) -> ChatbotService:
-    chatbot_service: ChatbotService | None = getattr(app.state, "chatbot_service", None)
-    if chatbot_service is None:
-        raise RuntimeError("ChatbotService has not been initialised")
-    return chatbot_service
-
-
-def get_chatbot_service(request: Request) -> ChatbotService:
-    return _get_chatbot_service(request.app)
-
-
-def _get_product_catalog(app: FastAPI) -> ProductCatalog:
-    product_catalog: ProductCatalog | None = getattr(app.state, "product_catalog", None)
-    if product_catalog is None:
-        raise RuntimeError("ProductCatalog has not been initialised")
-    return product_catalog
-
-
-def get_product_catalog(request: Request) -> ProductCatalog:
-    return _get_product_catalog(request.app)
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    sqlite_path = _require_env("SQLITE_PATH")
-    openai_api_key = _require_env("OPENAI_API_KEY")
-    pinecone_api_key = _require_env("PINECONE_API_KEY")
-    tavily_api_key = _require_env("TAVILY_API_KEY")
+    try:
+        settings = ChatbotSettings.from_env()
+    except ConfigError as exc:
+        logger.critical("Failed to load chatbot configuration: %s", exc)
+        raise
 
-    pinecone_index_name = os.getenv("PINECONE_INDEX_NAME", "ramon-products")
-    openai_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-    openai_temperature = float(os.getenv("OPENAI_TEMPERATURE", "0"))
+    async with AsyncSqliteSaver.from_conn_string(settings.sqlite_path) as checkpointer:
+        components = build_chatbot_components(settings, checkpointer)
 
-    async with AsyncSqliteSaver.from_conn_string(sqlite_path) as checkpointer:
-        openai_client = OpenAI(api_key=openai_api_key)
-        pinecone_client = Pinecone(api_key=pinecone_api_key)
-        pinecone_index = pinecone_client.Index(pinecone_index_name)
-        tavily_client = TavilySearch(max_results=3, tavily_api_key=tavily_api_key)
-        chat_model = ChatOpenAI(
-            model=openai_model,
-            temperature=openai_temperature,
-            api_key=openai_api_key,
-        )
-
-        app.state.chatbot_service = ChatbotService(
-            openai_client=openai_client,
-            pinecone_index=pinecone_index,
-            tavily_client=tavily_client,
-            chat_model=chat_model,
-            checkpointer=checkpointer,
-        )
-        app.state.product_catalog = PineconeProductCatalog(pinecone_index)
+        app.state.chatbot_service = components.service
+        app.state.product_catalog = components.product_catalog
 
         yield
 
@@ -101,7 +56,11 @@ async def get_chat(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 @app.websocket("/ws")
-async def websocket_endpoint(ws: WebSocket):
+async def websocket_endpoint(
+    ws: WebSocket,
+    chatbot_service: ChatbotService = Depends(get_chatbot_service_ws),
+    product_catalog: ProductCatalog = Depends(get_product_catalog_ws),
+):
     chat_id = ws.query_params.get("chat_id", "").strip()
     if not chat_id:
         raise WebSocketException(
@@ -110,8 +69,6 @@ async def websocket_endpoint(ws: WebSocket):
         )
 
     await ws.accept()
-    chatbot_service = _get_chatbot_service(ws.app)
-    product_catalog = _get_product_catalog(ws.app)
     try:
         while True:
             raw = await ws.receive_text()
