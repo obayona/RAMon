@@ -31,13 +31,15 @@
     <h1>RAMon — Hardware Assistant</h1>
     <div id="chat"></div>
     <form onsubmit="sendMessage(event)">
-      <input type="text" id="msgInput" placeholder="Ask about products or compatibility\u2026" autocomplete="off" />
+      <input type="text" id="msgInput" placeholder="Ask about products or compatibility" autocomplete="off" />
+      <input type="text" id="productIdInput" placeholder="Include a product id" value="230670"/>
       <button type="submit">Send</button>
     </form>
   </div>
   <script>
     const chat   = document.getElementById('chat');
     const input  = document.getElementById('msgInput');
+    const productIdInput = document.getElementById('productIdInput');
     const chatId = get_chat_id()
     let ws;
 
@@ -95,6 +97,7 @@
       e.preventDefault();
       const msg = input.value.trim();
       if (!msg) return;
+
       appendMsg(msg, 'human');
       removeTyping();
       const typing = document.createElement('div');
@@ -102,7 +105,14 @@
       typing.textContent = 'Assistant is thinking\u2026';
       chat.appendChild(typing);
       chat.scrollTop = chat.scrollHeight;
-      ws.send(JSON.stringify({ message: msg, chat_id: chatId }));
+
+      const data = { message: msg, chat_id: chatId }
+      const productId = productIdInput.value.trim();
+      if (productId) {
+        data['current_product_id'] = productId
+      }
+
+      ws.send(JSON.stringify(data));
       input.value = '';
     }
 
