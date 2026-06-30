@@ -38,12 +38,11 @@
   <script>
     const chat   = document.getElementById('chat');
     const input  = document.getElementById('msgInput');
-    const chatId = 'chat-' + Date.now();
-    console.log("el chat id", chatId)
+    const chatId = get_chat_id()
     let ws;
 
     function connect() {
-      ws = new WebSocket('ws://' + location.host + '/ws');
+      ws = new WebSocket('ws://' + location.host + '/ws?chat_id=' + chatId);
       ws.onopen = () => console.log('connected');
       ws.onclose = () => { setTimeout(connect, 2000); };
       ws.onmessage = event => {
@@ -115,7 +114,42 @@
       chat.scrollTop = chat.scrollHeight;
     }
 
-    connect();
+    function get_chat_id() {
+      const chatId = localStorage.getItem("chat_id")
+      if (chatId) {
+        return chatId
+      }
+
+      const newId = 'chat-' + Date.now();
+      localStorage.setItem("chat_id", newId)
+      return newId
+    }
+
+    async function get_old_chat(chat_id) {
+      const response = await fetch(`/chat/${chat_id}`)
+      if (response.ok) {
+        const data = await response.json();
+        console.log(data)
+        return data
+      }
+    }
+
+    async function render_old_chat(chat_id) {
+      try {
+        const chats = await get_old_chat(chat_id)
+        for (let chat of chats) {
+          appendMsg(chat.text, chat.type)
+          if (chat.ui_data) {
+            renderProducts(chat.ui_data.products)
+          }
+        }
+      }
+      catch (e) {
+        console.log(e)
+      }
+    }
+
+    render_old_chat(chatId).then(() => connect());
   </script>
 </body>
 </html>

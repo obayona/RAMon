@@ -1,17 +1,19 @@
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.base import BaseCheckpointSaver
-from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph.state import CompiledStateGraph
 from langchain_tavily import TavilySearch
 from openai import OpenAI
-from pinecone import Pinecone
 
 from chatbot.graph import build_graph
 from chatbot.state import AgentState, Product
 from chatbot.tools import build_tools
+
+
+class ChatNotFoundError(Exception):
+    """Raised when a chat thread could not be resolved."""
 
 
 class ChatbotService:
@@ -25,41 +27,31 @@ class ChatbotService:
 
     def __init__(
         self,
-        openai_api_key: str,
-        pinecone_api_key: str,
-        tavily_api_key: str,
+        *,
+        openai_client: OpenAI,
+        pinecone_index: Any,
+        tavily_client: TavilySearch,
+        chat_model: ChatOpenAI,
         checkpointer: BaseCheckpointSaver,
-        temperature: float = 0,
-        model_name: str = "gpt-4o-mini",
-        pinecone_index_name: str = "ramon-products",
     ) -> None:
-        if not openai_api_key:
-            raise ValueError(
-                "OPENAI_API_KEY is required — set it via the constructor, "
-                "the OPENAI_API_KEY env var, or a .env file."
-            )
-        if not pinecone_api_key:
-            raise ValueError(
-                "PINECONE_API_KEY is required — set it via the constructor, "
-                "the PINECONE_API_KEY env var, or a .env file."
-            )
+        if not openai_client:
+            raise ValueError("openai_client must be provided")
+        if not pinecone_index:
+            raise ValueError("pinecone_index must be provided")
+        if not tavily_client:
+            raise ValueError("tavily_client must be provided")
 
-        # ---- initialise external clients -----------------------------------------
-        self._openai_client = OpenAI(api_key=openai_api_key)
-        self._pinecone_index = Pinecone(api_key=pinecone_api_key).Index(
-            pinecone_index_name
-        )
-        self._tavily_client = TavilySearch(max_results=3, tavily_api_key=tavily_api_key)
+        self._openai_client = openai_client
+        self._pinecone_index = pinecone_index
+        self._tavily_client = tavily_client
+        self._model = chat_model
 
-        # ---- build tools (each tool closes over its dependencies) -----------------
         self._tools = build_tools(
             openai_client=self._openai_client,
             pinecone_index=self._pinecone_index,
             tavily_client=self._tavily_client,
         )
 
-        # ---- build + compile graph ------------------------------------------------
-        self._model = ChatOpenAI(model=model_name, temperature=temperature)
         self._app: CompiledStateGraph = (
             build_graph(self._model, self._tools)
             .compile(checkpointer=checkpointer)
@@ -73,7 +65,7 @@ class ChatbotService:
         self,
         message: str,
         current_product: Optional[Product] = None,
-        thread_id: str = "default",
+        chat_id: str = "default",
     ) -> AgentState:
         """Run the full graph to completion and return the final state."""
         state: AgentState = {
@@ -81,13 +73,13 @@ class ChatbotService:
             "current_product": current_product,
             "recommendations": [],
         }
-        return self._app.invoke(state, {"configurable": {"thread_id": thread_id}})
+        return self._app.invoke(state, {"configurable": {"thread_id": chat_id}})
 
     async def stream(
         self,
         message: str,
-        current_product: Optional[Dict[str, Any]] = None,
-        thread_id: str = "default",
+        current_product: Optional[Product] = None,
+        chat_id: str = "default",
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """
         Streams text tokens in real-time, followed by an end-of-stream payload 
@@ -99,7 +91,7 @@ class ChatbotService:
             "recommendations": [],
         }
         
-        config = {"configurable": {"thread_id": thread_id}}
+        config = {"configurable": {"thread_id": chat_id}}
 
         message_id: Optional[str] = None
 
@@ -128,11 +120,47 @@ class ChatbotService:
 
         if recommendations:
             yield {
-                "id": message_id or f"ui-{thread_id}",
+                "id": message_id or f"ui-{chat_id}",
                 "type": "ui_data",
                 "layout": "carousel",
                 "products": recommendations
             }
+
+    async def get_chat_history(self, chat_id: str) -> List[Dict[str, Any]]:
+        config = {"configurable": {"thread_id": chat_id}}
+        state = await self._app.aget_state(config)
+
+        if not state or "messages" not in state.values:
+            raise ChatNotFoundError(f"Chat '{chat_id}' not found")
+
+        messages = state.values["messages"]
+        if not messages:
+            raise ChatNotFoundError(f"Chat '{chat_id}' has no messages")
+
+        return self._format_messages(messages)
+
+    def _format_messages(self, messages: List[BaseMessage]) -> List[Dict[str, Any]]:
+        formatted: List[Dict[str, Any]] = []
+        for msg in messages:
+            if isinstance(msg, AIMessage) and not msg.tool_calls:
+                formatted.append(
+                    {
+                        "id": getattr(msg, "id", None),
+                        "type": "ai",
+                        "text": msg.content,
+                        "ui_data": msg.additional_kwargs.get("ui_payload"),
+                    }
+                )
+            elif isinstance(msg, HumanMessage):
+                formatted.append(
+                    {
+                        "id": getattr(msg, "id", None),
+                        "type": "human",
+                        "text": msg.content,
+                    }
+                )
+
+        return formatted
 
     @property
     def compiled_graph(self) -> CompiledStateGraph:
