@@ -1,44 +1,42 @@
 # RAMon Backend
 
-The RAMon backend exposes a FastAPI application that orchestrates a LangGraph-powered
-chatbot for product discovery in an online hardware store. It bundles a lightweight
-demo UI (`index.html`) and a WebSocket API that streams conversational updates to the
-frontend as the agent thinks and calls tools.
+FastAPI server that wraps the RAMon chatbot library for web deployment. It provides
+a WebSocket API for real-time streaming conversations and bundles a lightweight demo UI.
 
-## LangGraph Architecture
+## Prerequisites
 
-The assistant is implemented as a LangGraph state machine with a few purposeful nodes:
-
-- `chatbot` routes user messages through an OpenAI model primed with the system prompt
-  and current product context.
-- `tools` wraps LangChain tools (search, recommendations) via `ToolNode` and is invoked
-  whenever the model issues tool calls.
-- `process_tool_results` extracts structured product recommendations so the UI can render
-  curated results.
-
-![LangGraph flow](graph.png)
-
-The graph starts at `chatbot`, optionally loops through `tools` and
-`process_tool_results`, and finally emits structured snapshots that the WebSocket handler
-forwards to the client.
+- Python 3.10+
+- The `chatbot` package (shared library)
 
 ## Getting Started
 
-### 1. Configure environment variables
-
-Create a `.env` file (or export the variables) with the credentials and settings. See the `.env.example` for more info
-
-
-### 2. Install dependencies
+### 1. Create virtual environment
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
+```
+
+### 2. Install dependencies
+
+```bash
 pip install -r requirements.txt
 ```
 
-### 3. Run the server
+This installs the `chatbot` package in editable mode along with FastAPI and other server dependencies.
+
+### 3. Configure environment variables
+
+Create a `.env` file or create a symlink to the root `.env`:
+
+```bash
+ln -s ../.env .env
+```
+
+Check ../.env.example
+
+### 4. Run the server
 
 ```bash
 uvicorn server:app --reload --port 8080
@@ -46,19 +44,24 @@ uvicorn server:app --reload --port 8080
 
 The root route (`/`) serves the demo UI. Open `http://localhost:8080` to start a session.
 
-### 4. Access API documentation
+### 5. Access API documentation
 
-Open `http://localhost:8080/docs` to see HTTP endpoint documentation
-
+Open `http://localhost:8080/docs` to see HTTP endpoint documentation.
 
 ## WebSocket Protocol
 
-Clients connect to `/ws?chat_id=<session-id>` and exchange UTF-8 text frames. Outgoing
-frames should be JSON objects with:
+Clients connect to `/ws?chat_id=<session-id>` and exchange UTF-8 text frames.
 
-- `message` (string, required): the user input.
-- `current_product_id` (string, optional): catalog identifier that enriches the context.
+**Request format:**
+```json
+{
+  "message": "User input text",
+  "current_product_id": "optional-catalog-id"
+}
+```
 
 If a plain string is sent, the server treats it as the `message` with no current product.
-Responses are JSON snapshots mirroring the LangGraph stream; they contain assistant
-tokens plus any structured `ui_payload` entries for the frontend.
+
+**Response format:**
+Responses are streamed JSON snapshots containing assistant tokens and any structured
+`ui_payload` entries for product carousels.

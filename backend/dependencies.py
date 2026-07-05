@@ -1,11 +1,16 @@
+"""FastAPI dependency injection helpers for the chatbot service.
+
+These dependencies extract the chatbot service and product catalog from
+the FastAPI application state, making them available to route handlers.
+"""
 from __future__ import annotations
 
 from typing import Any, cast
 
 from fastapi import Request, WebSocket
 
-from chatbot.product_catalog import ProductCatalog
-from chatbot.service import ChatbotService
+from chatbot import ChatbotService, ProductCatalog
+
 
 def _get_state_attr(scope: Any, attribute: str) -> Any:
     if not hasattr(scope, "app"):

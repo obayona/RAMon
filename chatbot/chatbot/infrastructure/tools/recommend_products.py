@@ -5,7 +5,7 @@ from langchain_core.tools import tool
 from openai import OpenAI
 from pinecone import Index
 
-from chatbot.state import Product
+from chatbot.domain.models import Product
 
 
 def make_recommend_products(openai_client: OpenAI, pinecone_index: Index):

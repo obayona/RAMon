@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ramon-chatbot"
+version = "0.1.0"
+description = "RAMon Chatbot - Technical assistance chatbot for computer e-commerce"
+requires-python = ">=3.10"
+dependencies = [
+    "langchain-core>=1.0.0",
+    "langchain-openai>=1.0.0",
+    "langchain-tavily>=0.2.0",
+    "langgraph>=1.0.0",
+    "langgraph-checkpoint>=4.0.0",
+    "openai>=2.0.0",
+    "pinecone>=9.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ipython",
+    "pygraphviz",
+]
+
+[tool.setuptools.packages.find]
+include = ["chatbot*"]

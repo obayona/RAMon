@@ -1,0 +1,5 @@
+# Local chatbot package (install with: pip install -e ../chatbot)
+-e ../chatbot
+
+# CLI dependencies
+python-dotenv>=1.0.0

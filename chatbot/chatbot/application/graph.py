@@ -1,13 +1,13 @@
 import json
 from typing import Any, Dict, List, Literal
 
-from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
+from langchain_core.messages import SystemMessage, ToolMessage
 from langchain_core.tools import BaseTool
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode
 
-from chatbot.state import AgentState, Product
+from chatbot.domain.models import AgentState, Product
 
 SYSTEM_PROMPT = (
     "You are a technical assistant for RAMon, an online hardware store. "
@@ -44,6 +44,7 @@ def _build_system_message(product: Product | None = None) -> str:
         )
     return prompt
 
+
 def _process_tool_results(state: AgentState) -> Dict[str, Any]:
     """
     Extracts the tool output, updates the structured recommendations state
@@ -59,8 +60,9 @@ def _process_tool_results(state: AgentState) -> Dict[str, Any]:
             except (json.JSONDecodeError, TypeError):
                 pass
             break
-            
+
     return {}
+
 
 def _should_continue(state: AgentState) -> Literal["tools", END]:
     last = state["messages"][-1]

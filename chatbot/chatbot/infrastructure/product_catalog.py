@@ -3,15 +3,19 @@ from typing import Optional
 
 from pinecone import Index
 
-from chatbot.state import Product
+from chatbot.domain.models import Product
 
 
 class ProductCatalog:
+    """Abstract interface for retrieving product information."""
+
     async def get_product(self, product_id: str) -> Optional[Product]:
         raise NotImplementedError
 
 
 class PineconeProductCatalog(ProductCatalog):
+    """Pinecone-backed implementation of the product catalog."""
+
     def __init__(self, index: Index):
         self._index = index
 

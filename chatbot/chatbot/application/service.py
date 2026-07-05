@@ -1,15 +1,15 @@
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
-from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_openai import ChatOpenAI
+from langchain_tavily import TavilySearch
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph.state import CompiledStateGraph
-from langchain_tavily import TavilySearch
 from openai import OpenAI
 
-from chatbot.graph import build_graph
-from chatbot.state import AgentState, Product
-from chatbot.tools import build_tools
+from chatbot.application.graph import build_graph
+from chatbot.domain.models import AgentState, Product
+from chatbot.infrastructure.tools import build_tools
 
 
 class ChatNotFoundError(Exception):
@@ -82,7 +82,7 @@ class ChatbotService:
         chat_id: str = "default",
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """
-        Streams text tokens in real-time, followed by an end-of-stream payload 
+        Streams text tokens in real-time, followed by an end-of-stream payload
         containing structured data if recommendations were made.
         """
         state: AgentState = {
@@ -90,7 +90,7 @@ class ChatbotService:
             "current_product": current_product,
             "recommendations": [],
         }
-        
+
         config = {"configurable": {"thread_id": chat_id}}
 
         message_id: Optional[str] = None

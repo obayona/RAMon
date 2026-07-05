@@ -5,8 +5,7 @@ from langchain_tavily import TavilySearch
 
 
 def make_search_component_spec(tavily_client: TavilySearch):
-    """Create the ``search_component_spec`` tool with a pre-configured Tavily client.
-    """
+    """Create the ``search_component_spec`` tool with a pre-configured Tavily client."""
 
     @tool
     def search_component_spec(component_model: str) -> str:
