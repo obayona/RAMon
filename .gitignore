@@ -18,6 +18,9 @@ tools/scrapper/products.txt
 # Scraper downloaded reference data
 tools/scrapper/tienda.html
 
+# Node
+node_modules
+
 # Editor / OS
 .DS_Store
 *.swp
