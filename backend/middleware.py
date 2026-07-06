@@ -1,0 +1,172 @@
+"""Authentication middleware and dependencies for FastAPI.
+
+This module provides FastAPI dependencies for JWT and Basic Authentication,
+keeping authentication concerns separate from the main application logic.
+"""
+from __future__ import annotations
+
+import base64
+import binascii
+from typing import Any, cast
+
+from fastapi import HTTPException, Request, WebSocket, WebSocketException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from starlette import status
+
+from auth import (
+    AuthSettings,
+    JWTExpiredError,
+    JWTValidationError,
+    validate_jwt,
+    verify_basic_auth,
+)
+
+# Security scheme for JWT Bearer tokens
+_bearer_scheme = HTTPBearer(auto_error=False)
+
+
+def _get_state_attr(scope: Any, attribute: str) -> Any:
+    """Extract an attribute from the app state."""
+    if not hasattr(scope, "app"):
+        raise RuntimeError("Dependency scope does not expose an app instance")
+    app = scope.app
+    value = getattr(app.state, attribute, None)
+    if value is None:
+        raise RuntimeError(f"{attribute} has not been initialised")
+    return value
+
+
+def get_auth_settings(request: Request) -> AuthSettings:
+    """Dependency to get auth settings from request."""
+    return _resolve_auth_settings(request)
+
+
+def get_auth_settings_ws(ws: WebSocket) -> AuthSettings:
+    """Dependency to get auth settings from WebSocket."""
+    return _resolve_auth_settings(ws)
+
+
+def _resolve_auth_settings(scope: Any) -> AuthSettings:
+    """Extract auth settings from the app state."""
+    settings = _get_state_attr(scope, "auth_settings")
+    if not isinstance(settings, AuthSettings):
+        raise RuntimeError("auth_settings has been initialised with an unexpected type")
+    return cast(AuthSettings, settings)
+
+
+async def require_jwt(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = None,
+) -> dict:
+    """Dependency that validates JWT Bearer token from Authorization header.
+    
+    Returns the decoded JWT payload if valid.
+    
+    Raises:
+        HTTPException: 401 if token is missing, invalid, or expired.
+    """
+    if credentials is None:
+        credentials = await _bearer_scheme(request)
+    
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing authorization header",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    auth_settings = _resolve_auth_settings(request)
+    
+    try:
+        payload = validate_jwt(credentials.credentials, auth_settings.app_key)
+        return payload
+    except JWTExpiredError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except JWTValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(exc),
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+async def require_basic_auth(request: Request) -> AuthSettings:
+    """Dependency that validates HTTP Basic Authentication.
+    
+    Triggers browser's built-in authentication prompt if credentials
+    are missing or invalid.
+    
+    Returns:
+        AuthSettings if credentials are valid.
+    
+    Raises:
+        HTTPException: 401 if credentials are missing or invalid.
+    """
+    auth_header = request.headers.get("Authorization")
+    
+    if not auth_header or not auth_header.startswith("Basic "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+            headers={"WWW-Authenticate": "Basic realm=\"RAMon Chatbot\""},
+        )
+    
+    try:
+        encoded_credentials = auth_header[6:]  # Remove "Basic " prefix
+        decoded = base64.b64decode(encoded_credentials).decode("utf-8")
+        username, password = decoded.split(":", 1)
+    except (binascii.Error, ValueError, UnicodeDecodeError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials format",
+            headers={"WWW-Authenticate": "Basic realm=\"RAMon Chatbot\""},
+        )
+    
+    auth_settings = _resolve_auth_settings(request)
+    
+    if not verify_basic_auth(username, password, auth_settings):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+            headers={"WWW-Authenticate": "Basic realm=\"RAMon Chatbot\""},
+        )
+    
+    return auth_settings
+
+
+def validate_websocket_token(ws: WebSocket) -> dict:
+    """Validate JWT token from WebSocket query parameters.
+    
+    Args:
+        ws: The WebSocket connection.
+        
+    Returns:
+        The decoded JWT payload if valid.
+        
+    Raises:
+        WebSocketException: If token is missing, invalid, or expired.
+    """
+    token = ws.query_params.get("token", "").strip()
+    if not token:
+        raise WebSocketException(
+            code=status.WS_1008_POLICY_VIOLATION,
+            reason="token query parameter is required",
+        )
+
+    auth_settings = _resolve_auth_settings(ws)
+    try:
+        return validate_jwt(token, auth_settings.app_key)
+    except JWTExpiredError:
+        raise WebSocketException(
+            code=status.WS_1008_POLICY_VIOLATION,
+            reason="Token has expired",
+        )
+    except JWTValidationError as exc:
+        raise WebSocketException(
+            code=status.WS_1008_POLICY_VIOLATION,
+            reason=str(exc),
+        )

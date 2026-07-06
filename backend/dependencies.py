@@ -13,6 +13,7 @@ from chatbot import ChatbotService, ProductCatalog
 
 
 def _get_state_attr(scope: Any, attribute: str) -> Any:
+    """Extract an attribute from the app state."""
     if not hasattr(scope, "app"):
         raise RuntimeError("Dependency scope does not expose an app instance")
     app = scope.app
@@ -41,16 +42,20 @@ def _resolve_product_catalog(scope: Any) -> ProductCatalog:
 
 
 def get_chatbot_service(request: Request) -> ChatbotService:
+    """Dependency to get chatbot service from HTTP request."""
     return _resolve_chatbot_service(request)
 
 
 def get_chatbot_service_ws(ws: WebSocket) -> ChatbotService:
+    """Dependency to get chatbot service from WebSocket."""
     return _resolve_chatbot_service(ws)
 
 
 def get_product_catalog(request: Request) -> ProductCatalog:
+    """Dependency to get product catalog from HTTP request."""
     return _resolve_product_catalog(request)
 
 
 def get_product_catalog_ws(ws: WebSocket) -> ProductCatalog:
+    """Dependency to get product catalog from WebSocket."""
     return _resolve_product_catalog(ws)

@@ -36,15 +36,31 @@
       <button type="submit">Send</button>
     </form>
   </div>
+  <script id="ramon_data" type="application/json">{"token": "[TOKEN]"}</script>
   <script>
     const chat   = document.getElementById('chat');
     const input  = document.getElementById('msgInput');
     const productIdInput = document.getElementById('productIdInput');
-    const chatId = get_chat_id()
+    const chatId = get_chat_id();
+    const token = getToken();
     let ws;
 
+    function getToken() {
+      const dataEl = document.getElementById('ramon_data');
+      if (dataEl) {
+        try {
+          const data = JSON.parse(dataEl.textContent);
+          return data.token || '';
+        } catch (e) {
+          console.error('Failed to parse token data:', e);
+        }
+      }
+      return '';
+    }
+
     function connect() {
-      ws = new WebSocket('ws://' + location.host + '/ws?chat_id=' + chatId);
+      const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      ws = new WebSocket(wsProtocol + '//' + location.host + '/ws?chat_id=' + chatId + '&token=' + encodeURIComponent(token));
       ws.onopen = () => console.log('connected');
       ws.onclose = () => { setTimeout(connect, 2000); };
       ws.onmessage = event => {
@@ -136,11 +152,15 @@
     }
 
     async function get_old_chat(chat_id) {
-      const response = await fetch(`/chat/${chat_id}`)
+      const response = await fetch(`/chat/${chat_id}`, {
+        headers: {
+          'Authorization': 'Bearer ' + token
+        }
+      });
       if (response.ok) {
         const data = await response.json();
-        console.log(data)
-        return data
+        console.log(data);
+        return data;
       }
     }
 

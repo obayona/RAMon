@@ -3,6 +3,7 @@
 
 # Backend server dependencies
 fastapi>=0.100.0
+PyJWT>=2.8.0
 uvicorn>=0.23.0
 starlette>=0.27.0
 langgraph-checkpoint-sqlite>=1.0.0
