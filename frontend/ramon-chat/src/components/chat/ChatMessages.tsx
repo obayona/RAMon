@@ -1,5 +1,5 @@
 import type { ChatMessage } from '@/types/chat';
-import MessageBubble from './MessageBubble';
+import MessageBubble from '../messages/MessageBubble';
 import { WelcomeScreen } from '../helpers/WelcomeScreen';
 import { useEffect, useRef } from 'react';
 
