@@ -6,14 +6,12 @@ import ChatMessages from './ChatMessages';
 export default function Chat() {
    const { messages, loading, sendMessage } = useChat();
    return (
-      <main className='flex h-screen items-center justify-center bg-slate-100 p-6'>
-         <section className='flex h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl border bg-white shadow-xl'>
-            <ChatHeader />
+      <main className='flex h-full flex-col bg-background'>
+         <ChatHeader />
 
-            <ChatMessages messages={messages} loading={loading} />
+         <ChatMessages messages={messages} loading={loading} />
 
-            <ChatInput onSend={sendMessage} />
-         </section>
+         <ChatInput onSend={sendMessage} />
       </main>
    );
 }

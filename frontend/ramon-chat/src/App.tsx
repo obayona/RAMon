@@ -1,12 +1,11 @@
-import React from 'react';
 import './App.css';
-import Chat from './components/chat/Chat';
+
+import RamonWidget from './widget/RamonWidget';
 
 export const App = () => {
    return (
       <div>
-         App
-         <Chat />
+         <RamonWidget />
       </div>
    );
 };
