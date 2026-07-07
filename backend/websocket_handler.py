@@ -14,7 +14,8 @@ from fastapi import WebSocket, WebSocketException
 from starlette import status
 from starlette.websockets import WebSocketDisconnect
 
-from chatbot import ChatbotService, ProductCatalog
+from chatbot import ChatbotService
+from product_catalog import ProductCatalog
 
 logger = logging.getLogger("ramon.websocket")
 

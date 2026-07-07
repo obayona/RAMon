@@ -12,48 +12,79 @@ Requires:
     - Install chatbot package: pip install -e ../chatbot
     - .env file with required environment variables
 """
+import asyncio
+import os
+import uuid
 from dotenv import load_dotenv
+from psycopg_pool import AsyncConnectionPool
+from psycopg.rows import dict_row
+from chatbot import ChatbotSettings, Product, build_chatbot
 
 load_dotenv()
 
-from chatbot import Product, create_chatbot
 
-
-def run_demo():
+async def run_demo():
     """Run demonstration scenarios for the chatbot."""
     print("Initializing chatbot...")
-    bot = create_chatbot()
-    print("Chatbot initialized successfully!\n")
 
-    # ---- Test 1: Product Recommendation ----
-    user_query = "Necesito un KIT DE CAMARA EZVIZ, no importa el precio"
-    print("=" * 72)
-    print("TEST 1 - Product Recommendation")
-    print(f"User: {user_query}")
-    print("current_product: None")
-    print("=" * 72)
+    db_pool = AsyncConnectionPool(
+        conninfo=os.environ.get('DATABASE_URL'),
+        min_size=2,
+        max_size=10,
+        open=False,
+        kwargs={
+            "autocommit": True,
+            "row_factory": dict_row
+        }
+    )
+    await db_pool.open()
 
-    result = bot.invoke(user_query, chat_id="demo-test-1")
-    _print_result(result)
+    try:
+        chatbot_settings: ChatbotSettings = {
+            "db_pool": db_pool,
+            "openai_api_key": os.environ.get('OPENAI_API_KEY'),
+            "tavily_api_key": os.environ.get('TAVILY_API_KEY'),
+            "openai_model": os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
+            "openai_temperature": float(os.environ.get("OPENAI_TEMPERATURE", "0.0")),
+        }
+        bot = build_chatbot(chatbot_settings)
+        print("Chatbot initialized successfully!\n")
 
-    # ---- Test 2: Technical Compatibility ----
-    user_query = "Es esta memoria RAM compatible con mi tarjeta ASUS Prime B450M?"
-    print("\n" + "=" * 72)
-    print("TEST 2 - Technical Compatibility")
-    print(f"User: {user_query}")
-    print("current_product: Corsair Vengeance LPX 16GB DDR4")
-    print("=" * 72)
+        # Generate unique session ID for this demo run
+        session_id = str(uuid.uuid4())[:8]
 
-    current_ram: Product = {
-        "id": "ram-001",
-        "name": "Corsair Vengeance LPX 16GB (2x8GB) DDR4",
-        "description": "DDR4 3200MHz CL16, 1.35V, Intel XMP 2.0, black PCB, dual-channel desktop memory kit",
-        "price": 49.99,
-        "url": "/products/ram-001",
-    }
+        # ---- Test 1: Product Recommendation ----
+        user_query = "Necesito un KIT DE CAMARA EZVIZ, no importa el precio"
+        print("=" * 72)
+        print("TEST 1 - Product Recommendation")
+        print(f"User: {user_query}")
+        print("current_product: None")
+        print("=" * 72)
 
-    result = bot.invoke(user_query, current_product=current_ram, chat_id="demo-test-2")
-    _print_result(result)
+        result = await bot.ainvoke(user_query, chat_id=f"demo-{session_id}-test-1")
+        _print_result(result)
+
+        # ---- Test 2: Technical Compatibility ----
+        user_query = "Es esta memoria RAM compatible con mi tarjeta ASUS Prime B450M?"
+        print("\n" + "=" * 72)
+        print("TEST 2 - Technical Compatibility")
+        print(f"User: {user_query}")
+        print("current_product: Corsair Vengeance LPX 16GB DDR4")
+        print("=" * 72)
+
+        current_ram: Product = {
+            "id": "ram-001",
+            "name": "Corsair Vengeance LPX (2x8GB) DDR4",
+            "description": "DDR4 3200MHz CL16, 1.35V, Intel XMP 2.0, black PCB, dual-channel desktop memory kit",
+            "price": 49.99,
+            "url": "/products/ram-001",
+        }
+
+        result = await bot.ainvoke(user_query, current_product=current_ram, chat_id=f"demo-{session_id}-test-2")
+        _print_result(result)
+
+    finally:
+        await db_pool.close()
 
 
 def _print_result(result):
@@ -76,4 +107,4 @@ def _print_result(result):
 
 
 if __name__ == "__main__":
-    run_demo()
+    asyncio.run(run_demo())

@@ -3,13 +3,15 @@ from typing import Any, AsyncGenerator, Dict, List, Optional
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_openai import ChatOpenAI
 from langchain_tavily import TavilySearch
+from langchain_core.tools import BaseTool
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph.state import CompiledStateGraph
 from openai import OpenAI
+from psycopg_pool import AsyncConnectionPool
 
 from chatbot.application.graph import build_graph
-from chatbot.domain.models import AgentState, Product
-from chatbot.infrastructure.tools import build_tools
+from chatbot.domain import ChatbotState, Product
+from chatbot.tools import build_tools
 
 
 class ChatNotFoundError(Exception):
@@ -19,38 +21,30 @@ class ChatNotFoundError(Exception):
 class ChatbotService:
     """Production-ready LangGraph chatbot for product recommendations and
     hardware compatibility assistance.
-
-    All external clients (OpenAI, Pinecone, Tavily) are initialised once at
-    construction time and wired into the tools via closures — no module-level
-    state, no mocks, no circular imports.
     """
 
     def __init__(
         self,
         *,
         openai_client: OpenAI,
-        pinecone_index: Any,
-        tavily_client: TavilySearch,
         chat_model: ChatOpenAI,
+        db_pool: AsyncConnectionPool,
         checkpointer: BaseCheckpointSaver,
+        tavily_client: TavilySearch,
     ) -> None:
         if not openai_client:
             raise ValueError("openai_client must be provided")
-        if not pinecone_index:
-            raise ValueError("pinecone_index must be provided")
+        if not db_pool:
+            raise ValueError("db_pool must be provided")
         if not tavily_client:
             raise ValueError("tavily_client must be provided")
 
         self._openai_client = openai_client
-        self._pinecone_index = pinecone_index
+        self._db_pool = db_pool
         self._tavily_client = tavily_client
         self._model = chat_model
 
-        self._tools = build_tools(
-            openai_client=self._openai_client,
-            pinecone_index=self._pinecone_index,
-            tavily_client=self._tavily_client,
-        )
+        self._tools = build_tools(self._openai_client, self._db_pool, self._tavily_client)
 
         self._app: CompiledStateGraph = (
             build_graph(self._model, self._tools)
@@ -61,19 +55,20 @@ class ChatbotService:
     # Public API
     # ------------------------------------------------------------------
 
-    def invoke(
+    async def ainvoke(
         self,
         message: str,
         current_product: Optional[Product] = None,
         chat_id: str = "default",
-    ) -> AgentState:
-        """Run the full graph to completion and return the final state."""
-        state: AgentState = {
+    ) -> ChatbotState:
+        """Run the full graph to completion and return the final state (async)."""
+        state: ChatbotState = {
             "messages": [HumanMessage(content=message)],
             "current_product": current_product,
             "recommendations": [],
         }
-        return self._app.invoke(state, {"configurable": {"thread_id": chat_id}})
+
+        return await self._app.ainvoke(state, {"configurable": {"thread_id": chat_id}})
 
     async def stream(
         self,
@@ -85,7 +80,8 @@ class ChatbotService:
         Streams text tokens in real-time, followed by an end-of-stream payload
         containing structured data if recommendations were made.
         """
-        state: AgentState = {
+
+        state: ChatbotState = {
             "messages": [HumanMessage(content=message)],
             "current_product": current_product,
             "recommendations": [],

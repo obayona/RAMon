@@ -9,7 +9,8 @@ from typing import Any, cast
 
 from fastapi import Request, WebSocket
 
-from chatbot import ChatbotService, ProductCatalog
+from chatbot import ChatbotService
+from product_catalog import ProductCatalog
 
 
 def _get_state_attr(scope: Any, attribute: str) -> Any:

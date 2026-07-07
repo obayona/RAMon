@@ -9,17 +9,15 @@ class ConfigError(RuntimeError):
 
 
 @dataclass(slots=True)
-class ChatbotSettings:
+class AppConfig:
     database_url: str
     openai_api_key: str
-    pinecone_api_key: str
     tavily_api_key: str
-    pinecone_index_name: str = "ramon-products"
     openai_model: str = "gpt-4o-mini"
     openai_temperature: float = 0.0
 
     @classmethod
-    def from_env(cls, env: dict[str, str] | None = None) -> "ChatbotSettings":
+    def from_env(cls, env: dict[str, str] | None = None) -> "AppConfig":
         data = env or os.environ
 
         def require(key: str) -> str:
@@ -36,9 +34,7 @@ class ChatbotSettings:
         return cls(
             database_url=require("DATABASE_URL"),
             openai_api_key=require("OPENAI_API_KEY"),
-            pinecone_api_key=require("PINECONE_API_KEY"),
             tavily_api_key=require("TAVILY_API_KEY"),
-            pinecone_index_name=data.get("PINECONE_INDEX_NAME", "ramon-products"),
             openai_model=data.get("OPENAI_MODEL", "gpt-4o-mini"),
             openai_temperature=temperature,
         )

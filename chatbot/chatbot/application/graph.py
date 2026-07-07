@@ -7,7 +7,7 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode
 
-from chatbot.domain.models import AgentState, Product
+from chatbot.domain import ChatbotState, Product
 
 SYSTEM_PROMPT = (
     "You are a technical assistant for RAMon, an online hardware store. "
@@ -45,7 +45,7 @@ def _build_system_message(product: Product | None = None) -> str:
     return prompt
 
 
-def _process_tool_results(state: AgentState) -> Dict[str, Any]:
+def _process_tool_results(state: ChatbotState) -> Dict[str, Any]:
     """
     Extracts the tool output, updates the structured recommendations state
     """
@@ -64,7 +64,7 @@ def _process_tool_results(state: AgentState) -> Dict[str, Any]:
     return {}
 
 
-def _should_continue(state: AgentState) -> Literal["tools", END]:
+def _should_continue(state: ChatbotState) -> Literal["tools", END]:
     last = state["messages"][-1]
     if hasattr(last, "tool_calls") and last.tool_calls:
         return "tools"
@@ -72,7 +72,7 @@ def _should_continue(state: AgentState) -> Literal["tools", END]:
 
 
 def _make_chatbot_node(bound_model: ChatOpenAI):
-    def chatbot(state: AgentState) -> Dict[str, Any]:
+    def chatbot(state: ChatbotState) -> Dict[str, Any]:
         prompt = _build_system_message(state.get("current_product"))
         messages = [SystemMessage(content=prompt)] + state["messages"]
         response = bound_model.invoke(messages)
@@ -90,7 +90,7 @@ def _make_chatbot_node(bound_model: ChatOpenAI):
 
 def build_graph(model: ChatOpenAI, tools: List[BaseTool]) -> StateGraph:
     bound_model = model.bind_tools(tools)
-    graph = StateGraph(AgentState)
+    graph = StateGraph(ChatbotState)
 
     graph.add_node("chatbot", _make_chatbot_node(bound_model))
     graph.add_node("tools", ToolNode(tools))

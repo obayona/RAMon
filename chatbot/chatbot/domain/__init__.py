@@ -1,3 +1,4 @@
-from chatbot.domain.models import AgentState, Product
+from chatbot.domain.product import Product
+from chatbot.domain.state import ChatbotState
 
-__all__ = ["AgentState", "Product"]
+__all__ = ["ChatbotState", "Product"]

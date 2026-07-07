@@ -2,7 +2,7 @@
 
 Shared chatbot library for RAMon - a technical assistance chatbot for computer e-commerce.
 
-This package provides the core chatbot functionality using LangGraph, OpenAI, Pinecone,
+This package provides the core chatbot functionality using LangGraph, OpenAI, pgvector,
 and Tavily. It is designed to be used by both the backend server and CLI tools.
 
 ## Architecture
@@ -13,7 +13,7 @@ The package follows clean architecture principles with three layers:
 chatbot/
 ├── domain/           # Core domain models (Product, AgentState)
 ├── application/      # Business logic (ChatbotService, graph workflow)
-└── infrastructure/   # External adapters (Pinecone catalog, LangGraph tools)
+└── infrastructure/   # External adapters (PostgreSQL catalog, LangGraph tools)
 ```
 
 ### LangGraph Workflow
@@ -103,6 +103,7 @@ product: Product = {
     "description": "Product description",
     "price": 99.99,
     "url": "/products/prod-001",
+    "stock": 10,
 }
 ```
 

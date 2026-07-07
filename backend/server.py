@@ -8,14 +8,17 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, WebSocket
 from fastapi.responses import HTMLResponse
-from langgraph.checkpoint.postgres.aio import AsyncShallowPostgresSaver
+from pgvector.psycopg import register_vector_async
+from psycopg_pool import AsyncConnectionPool
+from psycopg.rows import dict_row
 
 from auth import AuthSettings, generate_jwt
-from chatbot import ChatbotSettings, ChatbotService, ConfigError, build_chatbot_components
-from chatbot.application.service import ChatNotFoundError
+from chatbot import ChatbotSettings, ChatbotService, ChatNotFoundError, build_chatbot
+from config import AppConfig, ConfigError
 from dependencies import get_chatbot_service, get_chatbot_service_ws, get_product_catalog_ws
 from middleware import require_basic_auth, require_jwt, validate_websocket_token
 from websocket_handler import handle_websocket_session, validate_chat_id
+from product_catalog import PostgresProductCatalog
 
 logger = logging.getLogger("ramon.server")
 
@@ -26,24 +29,48 @@ with open("index.html", "r") as f:
     INDEX_HTML_TEMPLATE = f.read()
 
 
+async def _configure_pgvector(conn):
+    """Register the pgvector type on each new async connection."""
+    await register_vector_async(conn)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager for initializing and cleaning up resources."""
     try:
-        settings = ChatbotSettings.from_env()
+        settings = AppConfig.from_env()
         auth_settings = AuthSettings.from_env()
     except (ConfigError, ValueError) as exc:
         logger.critical("Failed to load configuration: %s", exc)
         raise
 
-    async with AsyncShallowPostgresSaver.from_conn_string(settings.database_url) as checkpointer:
-        components = build_chatbot_components(settings, checkpointer)
+    db_pool = AsyncConnectionPool(
+        conninfo=settings.database_url,
+        min_size=2,
+        max_size=10,
+        open=False,
+        configure=_configure_pgvector,
+        kwargs={
+            "autocommit": True,
+            "row_factory": dict_row
+        }
+    )
+    await db_pool.open()
 
-        app.state.chatbot_service = components.service
-        app.state.product_catalog = components.product_catalog
-        app.state.auth_settings = auth_settings
+    chatbot_settings: ChatbotSettings = {
+        "db_pool": db_pool,
+        "openai_api_key": settings.openai_api_key,
+        "tavily_api_key": settings.tavily_api_key,
+        "openai_model": settings.openai_model,
+        "openai_temperature": settings.openai_temperature,
+    }
+    app.state.chatbot_service = build_chatbot(chatbot_settings)
+    app.state.product_catalog = PostgresProductCatalog(db_pool)
+    app.state.auth_settings = auth_settings
 
-        yield
+    yield
+
+    await db_pool.close()
 
 
 app = FastAPI(title="RAMon Chatbot", lifespan=lifespan)
@@ -67,7 +94,7 @@ async def root(auth_settings: AuthSettings = Depends(require_basic_auth)):
 async def get_chat(
     chat_id: str,
     chatbot_service: ChatbotService = Depends(get_chatbot_service),
-    _jwt_payload: dict = Depends(require_jwt),
+    _: dict = Depends(require_jwt),
 ):
     """Return the full message history for the provided ``chat_id``.
 
