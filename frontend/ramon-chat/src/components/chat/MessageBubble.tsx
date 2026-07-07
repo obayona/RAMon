@@ -26,7 +26,7 @@ export default function MessageBubble({ message }: Props) {
             }`}
          >
             {message.content && <p>{message.content}</p>}
-            <div className='flex '>
+            <div className='flex gap-3 '>
                {message.products &&
                   message.products.map((p) => (
                      <ProductCard key={p.id} product={p} />

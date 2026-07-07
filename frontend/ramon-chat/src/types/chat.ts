@@ -12,3 +12,10 @@ export interface ChatMessage {
    content?: string;
    products?: Product[];
 }
+
+export interface WSMessage {
+   type: 'text' | 'ui_data';
+   id?: string;
+   content?: string;
+   products?: Product[];
+}

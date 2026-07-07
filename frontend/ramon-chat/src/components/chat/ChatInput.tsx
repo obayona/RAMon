@@ -1,10 +1,26 @@
 import { SendHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useState } from 'react';
 
-export default function ChatInput() {
+interface Props {
+   onSend(message: string): void;
+}
+
+export default function ChatInput({ onSend }: Props) {
+   const [text, setText] = useState('');
+
+   function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
+      e.preventDefault();
+
+      if (!text.trim()) return;
+
+      onSend(text);
+
+      setText('');
+   }
    return (
-      <footer className='border-t p-4'>
+      <form onSubmit={handleSubmit} className='border-t p-4'>
          <div className='mx-auto flex max-w-4xl gap-3'>
             <Input
                placeholder='Pregunta sobre un producto...'
@@ -15,6 +31,6 @@ export default function ChatInput() {
                <SendHorizontal className='h-5 w-5' />
             </Button>
          </div>
-      </footer>
+      </form>
    );
 }
