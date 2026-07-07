@@ -23,11 +23,18 @@ export default function ChatInput({ onSend }: Props) {
       <form onSubmit={handleSubmit} className='border-t p-4'>
          <div className='mx-auto flex max-w-4xl gap-3'>
             <Input
+               value={text}
+               onChange={(e) => setText(e.target.value)}
                placeholder='Pregunta sobre un producto...'
                className='h-12'
             />
 
-            <Button size='icon' variant={'secondary'} className='h-12 w-12'>
+            <Button
+               type='submit'
+               size='icon'
+               variant={'secondary'}
+               className='h-12 w-12'
+            >
                <SendHorizontal className='h-5 w-5' />
             </Button>
          </div>

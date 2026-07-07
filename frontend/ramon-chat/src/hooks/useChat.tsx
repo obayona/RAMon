@@ -3,7 +3,7 @@ import type { ChatMessage, WSMessage } from '@/types/chat';
 import { createSocket } from '@/services/websocket';
 
 const CHAT_ID = 'test';
-const currentProductId = 230670;
+const currentProductId = '230670';
 
 export function useChat() {
    const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -15,6 +15,51 @@ export function useChat() {
       const data: WSMessage = JSON.parse(event.data);
 
       console.log(data);
+      if (data.type === 'text') {
+         setLoading(false);
+
+         setMessages((prev) => {
+            const index = prev.findIndex((m) => m.id === data.id);
+
+            // Ya existe el mensaje -> añadir el nuevo fragmento
+            if (index !== -1) {
+               const updated = [...prev];
+
+               updated[index] = {
+                  ...updated[index],
+                  content: updated[index].content + (data.content ?? ''),
+               };
+
+               return updated;
+            }
+
+            // Primer fragmento del mensaje
+            return [
+               ...prev,
+               {
+                  id: data.id!,
+                  role: 'assistant',
+                  content: data.content ?? '',
+               },
+            ];
+         });
+      }
+
+      if (data.type === 'ui_data') {
+         setMessages((prev) => {
+            const updated = [...prev];
+
+            const lastAssistant = [...updated]
+               .reverse()
+               .find((m) => m.role === 'assistant');
+
+            if (!lastAssistant) return prev;
+
+            lastAssistant.products = data.products ?? [];
+
+            return [...updated];
+         });
+      }
    }
 
    useEffect(() => {
