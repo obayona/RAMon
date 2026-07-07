@@ -1,7 +1,8 @@
 import type { ChatMessage } from '@/types/chat';
 import { motion } from 'framer-motion';
 import { Avatar } from '../helpers/Avatar';
-import { ProductCard } from '../helpers/ProductCard';
+
+import ProductCarousel from './ProductCarousel';
 
 interface Props {
    message: ChatMessage;
@@ -27,10 +28,9 @@ export default function MessageBubble({ message }: Props) {
          >
             {message.content && <p>{message.content}</p>}
             <div className='flex gap-3 '>
-               {message.products &&
-                  message.products.map((p) => (
-                     <ProductCard key={p.id} product={p} />
-                  ))}
+               {message.products && message.products.length > 0 && (
+                  <ProductCarousel products={message.products} />
+               )}
             </div>
          </div>
 
