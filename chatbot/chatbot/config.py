@@ -10,7 +10,7 @@ class ConfigError(RuntimeError):
 
 @dataclass(slots=True)
 class ChatbotSettings:
-    sqlite_path: str
+    database_url: str
     openai_api_key: str
     pinecone_api_key: str
     tavily_api_key: str
@@ -34,7 +34,7 @@ class ChatbotSettings:
             raise ConfigError("OPENAI_TEMPERATURE must be a float") from exc
 
         return cls(
-            sqlite_path=require("SQLITE_PATH"),
+            database_url=require("DATABASE_URL"),
             openai_api_key=require("OPENAI_API_KEY"),
             pinecone_api_key=require("PINECONE_API_KEY"),
             tavily_api_key=require("TAVILY_API_KEY"),

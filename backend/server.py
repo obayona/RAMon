@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, WebSocket
 from fastapi.responses import HTMLResponse
-from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+from langgraph.checkpoint.postgres.aio import AsyncShallowPostgresSaver
 
 from auth import AuthSettings, generate_jwt
 from chatbot import ChatbotSettings, ChatbotService, ConfigError, build_chatbot_components
@@ -36,7 +36,7 @@ async def lifespan(app: FastAPI):
         logger.critical("Failed to load configuration: %s", exc)
         raise
 
-    async with AsyncSqliteSaver.from_conn_string(settings.sqlite_path) as checkpointer:
+    async with AsyncShallowPostgresSaver.from_conn_string(settings.database_url) as checkpointer:
         components = build_chatbot_components(settings, checkpointer)
 
         app.state.chatbot_service = components.service

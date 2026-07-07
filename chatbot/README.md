@@ -53,20 +53,6 @@ result = bot.invoke("Recommend a gaming laptop under $1000")
 print(result["messages"][-1].content)
 ```
 
-## Configuration
-
-The chatbot requires these environment variables:
-
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `OPENAI_API_KEY` | OpenAI API key | Yes |
-| `PINECONE_API_KEY` | Pinecone API key | Yes |
-| `TAVILY_API_KEY` | Tavily API key for web search | Yes |
-| `SQLITE_PATH` | Path to SQLite for persistence | Yes |
-| `PINECONE_INDEX_NAME` | Pinecone index name | No (default: ramon-products) |
-| `OPENAI_MODEL` | OpenAI model to use | No (default: gpt-4o-mini) |
-| `OPENAI_TEMPERATURE` | Model temperature | No (default: 0.0) |
-
 ## API Reference
 
 ### Factory Functions
@@ -79,10 +65,10 @@ bot = create_chatbot()
 
 # Full control over initialization
 from chatbot import ChatbotSettings, build_chatbot_components
-from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+from langgraph.checkpoint.postgres.aio import AsyncShallowPostgresSaver
 
 settings = ChatbotSettings.from_env()
-async with AsyncSqliteSaver.from_conn_string(settings.sqlite_path) as saver:
+async with AsyncShallowPostgresSaver.from_conn_string(settings.database_url) as saver:
     components = build_chatbot_components(settings, saver)
     service = components.service
     catalog = components.product_catalog

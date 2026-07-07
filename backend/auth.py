@@ -32,9 +32,9 @@ class AuthSettings:
         if not app_key:
             raise ValueError("APP_KEY environment variable is required")
         if not user:
-            raise ValueError("USER environment variable is required")
+            raise ValueError("GUEST_USER environment variable is required")
         if not password:
-            raise ValueError("PASSWORD environment variable is required")
+            raise ValueError("GUEST_PASSWORD environment variable is required")
         
         return cls(app_key=app_key, user=user, password=password)
 

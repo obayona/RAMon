@@ -1,20 +1,3 @@
-"""RAMon Chatbot - Technical assistance chatbot for computer e-commerce.
-
-This is the shared chatbot library used by both the backend server and CLI tools.
-
-Quick Start:
-    >>> from chatbot import create_chatbot
-    >>> bot = create_chatbot()  # Loads settings from environment
-    >>> result = bot.invoke("Recommend a gaming laptop under $1000")
-
-For more control over initialization:
-    >>> from chatbot import ChatbotSettings, build_chatbot_components
-    >>> from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
-    >>> settings = ChatbotSettings.from_env()
-    >>> async with AsyncSqliteSaver.from_conn_string(settings.sqlite_path) as saver:
-    ...     components = build_chatbot_components(settings, saver)
-    ...     service = components.service
-"""
 from chatbot.application.service import ChatbotService, ChatNotFoundError
 from chatbot.config import ChatbotSettings, ConfigError
 from chatbot.domain.models import AgentState, Product

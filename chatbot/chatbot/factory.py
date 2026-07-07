@@ -34,7 +34,7 @@ def build_chatbot_components(
     """Build all chatbot components from settings and a checkpointer.
 
     This is the primary factory function for production use where you need
-    full control over the checkpointer (e.g., AsyncSqliteSaver for the server).
+    full control over the checkpointer (e.g., AsyncShallowPostgresSaver for the server).
 
     Args:
         settings: Configuration settings loaded from environment
