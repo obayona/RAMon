@@ -1,13 +1,21 @@
-import { getChatId } from '@/utils/ChatStorage';
+interface CreateSocketOptions {
+   apiUrl: string;
+   token: string;
+   chatId: string;
+   onMessage: (event: MessageEvent) => void;
+}
 
-export function createSocket(onMessage: (event: MessageEvent) => void) {
-   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+export function createSocket({
+   apiUrl,
+   token,
+   chatId,
+   onMessage,
+}: CreateSocketOptions) {
+   const wsUrl =
+      apiUrl.replace(/^http/, 'ws') +
+      `/ws?chat_id=${chatId}&token=${encodeURIComponent(token)}`;
 
-   const chatId = getChatId();
-
-   const socket = new WebSocket(
-      `${protocol}//localhost:8080/ws?chat_id=${chatId}`,
-   );
+   const socket = new WebSocket(wsUrl);
 
    socket.onopen = () => {
       console.log('Connected');
