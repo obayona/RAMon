@@ -1,16 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ChatMessage, WSMessage } from '@/types/chat';
 import { createSocket } from '@/services/websocket';
+import { useRamonConfig } from '@/context/RamonContext';
+import { loadHistory } from '@/services/history';
 
-const CHAT_ID = 'test';
-const currentProductId = '230670';
+// const CHAT_ID = 'test';
+// const currentProductId = '230670';
 
 export function useChat() {
+   const { apiUrl, token, productId } = useRamonConfig();
    const [messages, setMessages] = useState<ChatMessage[]>([]);
 
    const [loading, setLoading] = useState(false);
-
-   const socket = useRef<WebSocket | null>(null);
+   const chatId = useRef(getChatId());
    function handleMessage(event: MessageEvent) {
       const data: WSMessage = JSON.parse(event.data);
 
@@ -61,65 +63,34 @@ export function useChat() {
          });
       }
    }
+   async function loadOldHistory() {
+      try {
+         const history = await loadHistory({
+            apiUrl,
+            token,
+            chatId: chatId.current,
+         });
 
+         setMessages(history);
+      } catch (err) {
+         console.error(err);
+      }
+   }
    useEffect(() => {
-      socket.current = createSocket(handleMessage);
-
-      // ws.onmessage = (event) => {
-      //    const data: WSMessage = JSON.parse(event.data);
-
-      //    console.log(data);
-      //    if (data.type === 'text') {
-      //       setLoading(false);
-
-      //       setMessages((prev) => {
-      //          const index = prev.findIndex((m) => m.id === data.id);
-
-      //          // El mensaje ya existe → streaming
-      //          if (index !== -1) {
-      //             const copy = [...prev];
-
-      //             copy[index] = {
-      //                ...copy[index],
-      //                content: copy[index].content + (data.content ?? ''),
-      //             };
-
-      //             return copy;
-      //          }
-
-      //          // Primer fragmento
-      //          return [
-      //             ...prev,
-      //             {
-      //                id: data.id ?? crypto.randomUUID(),
-      //                role: 'assistant',
-      //                content: data.content ?? '',
-      //             },
-      //          ];
-      //       });
-      //    }
-
-      //    if (data.type === 'ui_data') {
-      //       setMessages((prev) => {
-      //          const copy = [...prev];
-
-      //          const lastAssistant = [...copy]
-      //             .reverse()
-      //             .find((m) => m.role === 'assistant');
-
-      //          if (!lastAssistant) return prev;
-
-      //          lastAssistant.products = data.products ?? [];
-
-      //          return [...copy];
-      //       });
-      //    }
-      // };
+      loadOldHistory();
+      socket.current = createSocket({
+         apiUrl,
+         token,
+         chatId: chatId.current,
+         onMessage: handleMessage,
+      });
 
       return () => {
          socket.current?.close();
       };
    }, []);
+
+   const socket = useRef<WebSocket | null>(null);
 
    const sendMessage = (text: string) => {
       // Mostrar inmediatamente el mensaje del usuario
@@ -146,12 +117,26 @@ export function useChat() {
          JSON.stringify({
             message: text,
 
-            chat_id: CHAT_ID,
+            chat_id: chatId,
 
-            current_product_id: currentProductId,
+            current_product_id: productId,
          }),
       );
    };
+
+   function getChatId() {
+      const existing = localStorage.getItem('chat_id');
+
+      if (existing) {
+         return existing;
+      }
+
+      const id = `chat-${Date.now()}`;
+
+      localStorage.setItem('chat_id', id);
+
+      return id;
+   }
 
    return {
       messages,
