@@ -1,4 +1,4 @@
-import type { RamonConfig } from '@/types/chat';
+import type { RamonConfig } from '@/types/config';
 import { createContext, useContext } from 'react';
 
 const RamonContext = createContext<RamonConfig | null>(null);

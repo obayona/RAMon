@@ -1,4 +1,4 @@
-import type { RamonConfig } from '@/types/chat';
+import type { RamonConfig } from '@/types/config';
 
 export function getConfig(): RamonConfig {
    const element = document.getElementById('ramon-config');
