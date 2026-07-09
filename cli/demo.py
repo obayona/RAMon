@@ -18,7 +18,9 @@ import uuid
 from dotenv import load_dotenv
 from psycopg_pool import AsyncConnectionPool
 from psycopg.rows import dict_row
-from chatbot import ChatbotSettings, Product, build_chatbot
+
+from chatbot import ChatbotBuilder, Product
+from chatbot.adapters import PostgresProductRepository
 
 load_dotenv()
 
@@ -40,14 +42,19 @@ async def run_demo():
     await db_pool.open()
 
     try:
-        chatbot_settings: ChatbotSettings = {
-            "db_pool": db_pool,
-            "openai_api_key": os.environ.get('OPENAI_API_KEY'),
-            "tavily_api_key": os.environ.get('TAVILY_API_KEY'),
-            "openai_model": os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
-            "openai_temperature": float(os.environ.get("OPENAI_TEMPERATURE", "0.0")),
-        }
-        bot = build_chatbot(chatbot_settings)
+        # Build chatbot using the new builder pattern
+        # MemorySaver is used by default (great for CLI/testing)
+        bot = (
+            ChatbotBuilder()
+            .with_openai(
+                api_key=os.environ.get('OPENAI_API_KEY'),
+                model=os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
+                temperature=float(os.environ.get("OPENAI_TEMPERATURE", "0.0")),
+            )
+            .with_tavily(api_key=os.environ.get('TAVILY_API_KEY'))
+            .with_product_repository(PostgresProductRepository(db_pool))
+            .build()
+        )
         print("Chatbot initialized successfully!\n")
 
         # Generate unique session ID for this demo run
@@ -78,6 +85,7 @@ async def run_demo():
             "description": "DDR4 3200MHz CL16, 1.35V, Intel XMP 2.0, black PCB, dual-channel desktop memory kit",
             "price": 49.99,
             "url": "/products/ram-001",
+            "stock": 10,
         }
 
         result = await bot.ainvoke(user_query, current_product=current_ram, chat_id=f"demo-{session_id}-test-2")

@@ -7,10 +7,9 @@ from langchain_core.tools import BaseTool
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph.state import CompiledStateGraph
 from openai import OpenAI
-from psycopg_pool import AsyncConnectionPool
 
 from chatbot.application.graph import build_graph
-from chatbot.domain import ChatbotState, Product
+from chatbot.domain import ChatbotState, Product, EmbeddingService, ProductRepository
 from chatbot.tools import build_tools
 
 
@@ -28,23 +27,31 @@ class ChatbotService:
         *,
         openai_client: OpenAI,
         chat_model: ChatOpenAI,
-        db_pool: AsyncConnectionPool,
         checkpointer: BaseCheckpointSaver,
         tavily_client: TavilySearch,
+        embedding_service: EmbeddingService,
+        product_repository: ProductRepository,
     ) -> None:
         if not openai_client:
             raise ValueError("openai_client must be provided")
-        if not db_pool:
-            raise ValueError("db_pool must be provided")
         if not tavily_client:
             raise ValueError("tavily_client must be provided")
+        if not embedding_service:
+            raise ValueError("embedding_service must be provided")
+        if not product_repository:
+            raise ValueError("product_repository must be provided")
 
         self._openai_client = openai_client
-        self._db_pool = db_pool
         self._tavily_client = tavily_client
         self._model = chat_model
+        self._embedding_service = embedding_service
+        self._product_repository = product_repository
 
-        self._tools = build_tools(self._openai_client, self._db_pool, self._tavily_client)
+        self._tools = build_tools(
+            embedding_service=self._embedding_service,
+            product_repository=self._product_repository,
+            tavily_client=self._tavily_client,
+        )
 
         self._app: CompiledStateGraph = (
             build_graph(self._model, self._tools)

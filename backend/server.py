@@ -8,12 +8,14 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, WebSocket
 from fastapi.responses import HTMLResponse
+from langgraph.checkpoint.postgres.aio import AsyncShallowPostgresSaver
 from pgvector.psycopg import register_vector_async
 from psycopg_pool import AsyncConnectionPool
 from psycopg.rows import dict_row
 
 from auth import AuthSettings, generate_jwt
-from chatbot import ChatbotSettings, ChatbotService, ChatNotFoundError, build_chatbot
+from chatbot import ChatbotBuilder, ChatbotService, ChatNotFoundError
+from chatbot.adapters import PostgresProductRepository
 from config import AppConfig, ConfigError
 from dependencies import get_chatbot_service, get_chatbot_service_ws, get_product_catalog_ws
 from middleware import require_basic_auth, require_jwt, validate_websocket_token
@@ -57,14 +59,19 @@ async def lifespan(app: FastAPI):
     )
     await db_pool.open()
 
-    chatbot_settings: ChatbotSettings = {
-        "db_pool": db_pool,
-        "openai_api_key": settings.openai_api_key,
-        "tavily_api_key": settings.tavily_api_key,
-        "openai_model": settings.openai_model,
-        "openai_temperature": settings.openai_temperature,
-    }
-    app.state.chatbot_service = build_chatbot(chatbot_settings)
+    # Build chatbot service using the builder pattern
+    app.state.chatbot_service = (
+        ChatbotBuilder()
+        .with_openai(
+            api_key=settings.openai_api_key,
+            model=settings.openai_model,
+            temperature=settings.openai_temperature,
+        )
+        .with_tavily(api_key=settings.tavily_api_key)
+        .with_checkpointer(AsyncShallowPostgresSaver(db_pool))
+        .with_product_repository(PostgresProductRepository(db_pool))
+        .build()
+    )
     app.state.product_catalog = PostgresProductCatalog(db_pool)
     app.state.auth_settings = auth_settings
 

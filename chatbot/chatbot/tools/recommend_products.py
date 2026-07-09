@@ -1,13 +1,17 @@
+"""Product recommendation tool using semantic search."""
 import json
 from typing import Optional
 
 from langchain_core.tools import tool
-from psycopg_pool import AsyncConnectionPool
-from openai import OpenAI
+
+from chatbot.domain.ports import EmbeddingService, ProductRepository
 
 
-def make_recommend_products(openai_client: OpenAI, db_pool: AsyncConnectionPool):
-    """Create the ``recommend_products`` tool with pre-configured clients."""
+def make_recommend_products(
+    embedding_service: EmbeddingService,
+    product_repository: ProductRepository,
+):
+    """Create the ``recommend_products`` tool with pre-configured services."""
 
     @tool
     async def recommend_products(
@@ -17,60 +21,20 @@ def make_recommend_products(openai_client: OpenAI, db_pool: AsyncConnectionPool)
     ) -> str:
         """Search for hardware products using semantic similarity with optional price filtering.
 
-        The query is embedded with ``text-embedding-3-small`` and searched against the
-        ``products`` table using pgvector cosine distance.  ``min_price`` / ``max_price``
-        are applied as WHERE filters.  Returns the top 3 products as a JSON array."""
-
-        embedding = (
-            openai_client.embeddings.create(
-                input=query, model="text-embedding-3-small"
-            )
-            .data[0]
-            .embedding
-        )
-
-        # Build WHERE clause for price filtering
-        conditions = []
-        params: list = []
-
-        if min_price is not None:
-            conditions.append("price >= %s")
-            params.append(min_price)
-
-        if max_price is not None:
-            conditions.append("price <= %s")
-            params.append(max_price)
-
-        where_clause = ""
-        if conditions:
-            where_clause = "WHERE " + " AND ".join(conditions)
-
-        params.append(embedding)
-
-        sql = f"""
-            SELECT id, name, description, price, url, stock
-            FROM products
-            {where_clause}
-            ORDER BY embedding <=> %s::vector
-            LIMIT 3
+        The query is embedded and searched against the product database using 
+        cosine distance. ``min_price`` / ``max_price`` are applied as filters.
+        Returns the top 3 products as a JSON array.
         """
+        # Generate embedding for the query
+        embedding = await embedding_service.embed(query)
 
-        async with db_pool.connection() as conn:
-            async with conn.cursor() as cur:
-                await cur.execute(sql, params)
-                rows = await cur.fetchall()
-
-        products = [
-            {
-                "id": row["id"],
-                "name": row["name"],
-                "description": row["description"],
-                "price": row["price"],
-                "url": row["url"],
-                "stock": row["stock"],
-            }
-            for row in rows
-        ]
+        # Search for similar products
+        products = await product_repository.search_by_similarity(
+            embedding=embedding,
+            min_price=min_price,
+            max_price=max_price,
+            limit=3,
+        )
 
         return json.dumps(products, indent=2)
 
