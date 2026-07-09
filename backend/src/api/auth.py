@@ -1,52 +1,25 @@
-"""Authentication module for JWT validation and basic authentication.
+"""Authentication utilities for JWT and Basic Auth.
 
-This module provides helper functions for securing API endpoints
-using JWT tokens and HTTP Basic Authentication.
+This module provides functions for generating and validating JWT tokens,
+as well as verifying HTTP Basic Authentication credentials.
 """
 from __future__ import annotations
 
-import os
 import secrets
-from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
 import jwt
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 
-
-@dataclass(frozen=True)
-class AuthSettings:
-    """Authentication configuration loaded from environment variables."""
-    
-    app_key: str
-    user: str
-    password: str
-    
-    @classmethod
-    def from_env(cls) -> "AuthSettings":
-        """Load authentication settings from environment variables."""
-        app_key = os.getenv("APP_KEY")
-        user = os.getenv("GUEST_USER")
-        password = os.getenv("GUEST_PASSWORD")
-        
-        if not app_key:
-            raise ValueError("APP_KEY environment variable is required")
-        if not user:
-            raise ValueError("GUEST_USER environment variable is required")
-        if not password:
-            raise ValueError("GUEST_PASSWORD environment variable is required")
-        
-        return cls(app_key=app_key, user=user, password=password)
+from src.core.config import AuthConfig
 
 
 class JWTValidationError(Exception):
     """Raised when JWT validation fails."""
-    pass
 
 
 class JWTExpiredError(JWTValidationError):
     """Raised when JWT has expired."""
-    pass
 
 
 def generate_jwt(secret_key: str, expires_in_hours: int = 24) -> str:
@@ -90,7 +63,7 @@ def validate_jwt(token: str, secret_key: str) -> dict:
         raise JWTValidationError(f"Invalid token: {exc}") from exc
 
 
-def verify_basic_auth(username: str, password: str, settings: AuthSettings) -> bool:
+def verify_basic_auth(username: str, password: str, config: AuthConfig) -> bool:
     """Verify basic authentication credentials.
     
     Uses constant-time comparison to prevent timing attacks.
@@ -98,11 +71,11 @@ def verify_basic_auth(username: str, password: str, settings: AuthSettings) -> b
     Args:
         username: The provided username.
         password: The provided password.
-        settings: The authentication settings containing valid credentials.
+        config: The authentication config containing valid credentials.
         
     Returns:
         True if credentials are valid, False otherwise.
     """
-    username_valid = secrets.compare_digest(username, settings.user)
-    password_valid = secrets.compare_digest(password, settings.password)
+    username_valid = secrets.compare_digest(username, config.user)
+    password_valid = secrets.compare_digest(password, config.password)
     return username_valid and password_valid
