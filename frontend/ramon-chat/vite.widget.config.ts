@@ -14,18 +14,16 @@ export default defineConfig({
    },
 
    build: {
-      lib: {
-         entry: path.resolve(__dirname, 'src/widget.tsx'),
-         name: 'RamonWidget',
-         formats: ['iife'],
-         fileName: () => 'ramon',
-      },
-
-      emptyOutDir: true,
+      outDir: 'dist-widget',
 
       rollupOptions: {
+         input: path.resolve(__dirname, 'widget.html'),
+
          output: {
-            inlineDynamicImports: true,
+            entryFileNames: 'ramon.js',
+            chunkFileNames: 'ramon.js',
+            assetFileNames: '[name][extname]',
+            manualChunks: undefined,
          },
       },
    },
