@@ -1,0 +1,71 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: ramon
+      POSTGRES_PASSWORD: ramon_dev_password
+      POSTGRES_DB: ramon
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ramon -d ramon"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://ramon:ramon_dev_password@postgres:5432/ramon
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      TAVILY_API_KEY: ${TAVILY_API_KEY}
+      APP_KEY: ${APP_KEY}
+      GUEST_USER: ${GUEST_USER}
+      GUEST_PASSWORD: ${GUEST_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "/app/backend/entrypoint.sh"]
+    command: ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8080", "--reload"]
+    develop:
+      watch:
+        # Sync backend source code changes
+        - action: sync
+          path: ./backend/src
+          target: /app/backend/src
+        # Sync chatbot package changes  
+        - action: sync
+          path: ./chatbot/chatbot
+          target: /app/chatbot/chatbot
+        # Rebuild on requirements change
+        - action: rebuild
+          path: ./backend/requirements.txt
+        # Sync index.html for UI changes
+        - action: sync
+          path: ./backend/index.html
+          target: /app/backend/index.html
+
+  # One-off service to load product fixtures
+  fixtures:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://ramon:ramon_dev_password@postgres:5432/ramon
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    working_dir: /app/tools/pg_vector_importer
+    command: ["python", "importer.py"]
+    profiles:
+      - fixtures
+
+volumes:
+  postgres_data:
