@@ -3,17 +3,7 @@
 FastAPI server that wraps the RAMon chatbot library for web deployment. It provides
 a WebSocket API for real-time streaming conversations and bundles a lightweight demo UI.
 
-## Prerequisites
-
-- Python 3.10+
-- PostgreSQL 16+ with pgvector extension
-- The `chatbot` package (shared library)
-
-## Quick Start with Docker (Recommended)
-
-The easiest way to run the backend is with Docker Compose, which handles PostgreSQL, migrations, and the FastAPI server.
-
-### 1. Configure environment variables
+## Configure environment variables
 
 Create a `.env` on the project root using `.env.example` as reference:
 
@@ -37,7 +27,11 @@ Required variables:
 - `GUEST_PASSWORD` - Basic auth password
 
 
-### 2. Start the development stack
+## Quick Start with Docker (Recommended)
+
+The easiest way to run the backend is with Docker Compose, which handles PostgreSQL, migrations, and the FastAPI server.
+
+### 1. Start the development stack
 
 ```bash
 docker compose up --watch
@@ -51,27 +45,13 @@ This will:
 
 The server will be available at `http://localhost:8000`.
 
-### 3. Load product fixtures
-
-**First time setup** (generates embeddings via OpenAI API):
-
-```bash
-docker compose run --rm fixtures-generate
-```
-
-**Export fixtures** (save products with embeddings to CSV):
-
-```bash
-docker compose run --rm fixtures-export
-```
-
-**Load from fixtures** (no API calls, uses pre-computed embeddings):
+### 2. Load product fixtures
 
 ```bash
 docker compose run --rm fixtures-load
 ```
 
-### 4. Stop the stack
+### 3. Stop the stack
 
 ```bash
 docker compose down        # Stop containers
@@ -79,6 +59,13 @@ docker compose down -v     # Stop and remove volumes (fresh start)
 ```
 
 ## Local Development (Without Docker)
+
+### Prerequisites
+
+- Python 3.10+
+- PostgreSQL 16+ with pgvector extension
+- The `chatbot` package (shared library)
+
 
 ### 1. Create virtual environment
 
@@ -96,11 +83,7 @@ pip install -r requirements.txt
 
 This installs the `chatbot` package in editable mode along with FastAPI and other server dependencies.
 
-### 3. Configure environment variables
-
-Configure the `.env` file the same way as explained above
-
-### 4. Set up the database
+### 3. Set up the database
 
 Run migrations (includes products table and LangGraph checkpointer tables):
 
@@ -120,7 +103,7 @@ The root route (`/`) serves the demo UI. Open `http://localhost:8000` to start a
 
 Migrations are managed with [yoyo-migrations](https://ollycope.com/software/yoyo/latest/).
 
-The `yoyo.ini` file configures the migrations directory. You need to pass the database URL when running commands.
+The `yoyo.ini` file configures the migrations directory.
 
 ### Check migration status
 
@@ -179,6 +162,7 @@ backend/
 │   └── infrastructure/      # External services
 │       └── database.py
 ├── migrations/              # Yoyo database migrations
+├── fixtures/                # small database dump
 ├── yoyo.ini                 # Yoyo configuration
 ├── index.html               # Demo UI
 └── Dockerfile

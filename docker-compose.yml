@@ -55,42 +55,7 @@ services:
           path: ./backend/index.html
           target: /app/backend/index.html
 
-  # Generate embeddings from CSV (calls OpenAI API)
-  # Usage: docker compose run --rm fixtures-generate
-  fixtures-generate:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
-    environment:
-      DATABASE_URL: postgresql://ramon:ramon_dev_password@postgres:5432/ramon
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    working_dir: /app/tools/pg_vector_importer
-    command: ["python", "importer.py"]
-    profiles:
-      - fixtures
-
-  # Export products with embeddings to CSV (for creating fixtures)
-  # Usage: docker compose run --rm fixtures-export
-  fixtures-export:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
-    environment:
-      DATABASE_URL: postgresql://ramon:ramon_dev_password@postgres:5432/ramon
-    depends_on:
-      postgres:
-        condition: service_healthy
-    working_dir: /app/tools/pg_vector_importer
-    volumes:
-      - ./fixtures:/app/fixtures
-    command: ["python", "importer.py", "--export", "/app/fixtures/products_with_embeddings.csv"]
-    profiles:
-      - fixtures
-
-  # Load products from fixtures CSV (no API calls, uses pre-computed embeddings)
+  # Load products from fixtures/ (no API calls, uses pre-computed embeddings)
   # Usage: docker compose run --rm fixtures-load
   fixtures-load:
     build:
@@ -101,10 +66,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    working_dir: /app/tools/pg_vector_importer
-    volumes:
-      - ./fixtures:/app/fixtures
-    command: ["python", "importer.py", "--fixtures", "/app/fixtures/products_with_embeddings.csv"]
+    working_dir: /app/backend/fixtures
+    command: ["python", "load_fixtures.py"]
     profiles:
       - fixtures
 

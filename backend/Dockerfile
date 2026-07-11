@@ -24,9 +24,6 @@ RUN pip install --no-cache-dir sqlalchemy pgvector psycopg2-binary
 # Copy backend source code
 COPY backend /app/backend
 
-# Copy fixtures tool
-COPY tools/pg_vector_importer /app/tools/pg_vector_importer
-
 # Make entrypoint executable
 RUN chmod +x /app/backend/entrypoint.sh
 
