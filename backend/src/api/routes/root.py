@@ -2,7 +2,7 @@
 from pathlib import Path
 
 from fastapi import APIRouter, Depends
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 
 from src.api.auth import generate_jwt
 from src.api.middleware import require_basic_auth
@@ -13,6 +13,12 @@ router = APIRouter()
 # Cache the index.html template at module load
 _TEMPLATE_PATH = Path(__file__).parent.parent.parent.parent / "index.html"
 _INDEX_HTML_TEMPLATE = _TEMPLATE_PATH.read_text()
+
+
+@router.get("/health")
+async def health_check() -> JSONResponse:
+    """Health check endpoint for load balancers and monitoring."""
+    return JSONResponse(content={"status": "healthy"})
 
 
 @router.get("/")
