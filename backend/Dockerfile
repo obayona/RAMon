@@ -18,9 +18,6 @@ RUN pip install --no-cache-dir -e /app/chatbot
 COPY backend/requirements.txt /app/backend/requirements.txt
 RUN pip install --no-cache-dir -r /app/backend/requirements.txt
 
-# Install additional dependencies for fixtures importer
-RUN pip install --no-cache-dir sqlalchemy pgvector psycopg2-binary
-
 # Copy backend source code
 COPY backend /app/backend
 

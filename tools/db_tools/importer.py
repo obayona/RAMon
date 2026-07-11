@@ -9,7 +9,8 @@ Usage:
     python importer.py --csv data.csv     # Import from custom CSV
 
 Environment Variables:
-    DATABASE_URL: PostgreSQL connection string (required)
+    DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD: Individual DB settings
+    DATABASE_URL: PostgreSQL connection string (alternative to individual settings)
     OPENAI_API_KEY: OpenAI API key (required for import, not for export)
 """
 import argparse
@@ -25,7 +26,20 @@ from sqlalchemy import create_engine, text
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+
+def _get_database_url() -> str:
+    """Build DATABASE_URL from individual components or use existing value."""
+    existing_url = os.environ.get("DATABASE_URL", "").strip()
+    if existing_url:
+        return existing_url
+    
+    return (
+        f"postgresql://{os.environ['DB_USER']}:{os.environ['DB_PASSWORD']}"
+        f"@{os.environ['DB_HOST']}:{os.environ['DB_PORT']}/{os.environ['DB_NAME']}"
+    )
+
+
+DATABASE_URL = _get_database_url()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 DEFAULT_CSV = Path(__file__).parent / "wc-products.csv"
 EMBEDDING_MODEL = "text-embedding-3-small"

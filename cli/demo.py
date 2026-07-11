@@ -25,12 +25,24 @@ from chatbot.adapters import PostgresProductRepository
 load_dotenv()
 
 
+def _get_database_url() -> str:
+    """Build DATABASE_URL from individual components or use existing value."""
+    existing_url = os.environ.get("DATABASE_URL", "").strip()
+    if existing_url:
+        return existing_url
+    
+    return (
+        f"postgresql://{os.environ['DB_USER']}:{os.environ['DB_PASSWORD']}"
+        f"@{os.environ['DB_HOST']}:{os.environ['DB_PORT']}/{os.environ['DB_NAME']}"
+    )
+
+
 async def run_demo():
     """Run demonstration scenarios for the chatbot."""
     print("Initializing chatbot...")
 
     db_pool = AsyncConnectionPool(
-        conninfo=os.environ.get('DATABASE_URL'),
+        conninfo=_get_database_url(),
         min_size=2,
         max_size=10,
         open=False,

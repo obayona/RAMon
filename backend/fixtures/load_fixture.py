@@ -7,7 +7,8 @@ Usage:
     python load_fixture.py --input fixture.pkl.gz     # restore products table
 
 Environment Variables:
-    DATABASE_URL: PostgreSQL connection string (required)
+    DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD: Individual DB settings
+    DATABASE_URL: PostgreSQL connection string (alternative to individual settings)
 """
 import os
 import argparse
@@ -20,8 +21,21 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
+def _get_database_url() -> str:
+    """Build DATABASE_URL from individual components or use existing value."""
+    existing_url = os.environ.get("DATABASE_URL", "").strip()
+    if existing_url:
+        return existing_url
+    
+    return (
+        f"postgresql://{os.environ['DB_USER']}:{os.environ['DB_PASSWORD']}"
+        f"@{os.environ['DB_HOST']}:{os.environ['DB_PORT']}/{os.environ['DB_NAME']}"
+    )
+
+
 # --- Configuration ---
-DB_URL = os.getenv("DATABASE_URL")
+DB_URL = _get_database_url()
 INPUT_FILE = "fixture.pkl.gz"
 
 def restore_pgvector_table(input_file):

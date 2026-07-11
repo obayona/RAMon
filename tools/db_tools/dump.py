@@ -8,7 +8,8 @@ Usage:
     python dump.py --output fixture.pkl.gz     # dump with output option
 
 Environment Variables:
-    DATABASE_URL: PostgreSQL connection string (required)
+    DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD: Individual DB settings
+    DATABASE_URL: PostgreSQL connection string (alternative to individual settings)
 """
 import argparse
 import os
@@ -21,8 +22,21 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
+def _get_database_url() -> str:
+    """Build DATABASE_URL from individual components or use existing value."""
+    existing_url = os.environ.get("DATABASE_URL", "").strip()
+    if existing_url:
+        return existing_url
+    
+    return (
+        f"postgresql://{os.environ['DB_USER']}:{os.environ['DB_PASSWORD']}"
+        f"@{os.environ['DB_HOST']}:{os.environ['DB_PORT']}/{os.environ['DB_NAME']}"
+    )
+
+
 # --- Configuration ---
-DB_URL = os.getenv("DATABASE_URL")
+DB_URL = _get_database_url()
 OUTPUT_FILE = "fixture.pkl.gz"
 ROW_LIMIT = 100
 

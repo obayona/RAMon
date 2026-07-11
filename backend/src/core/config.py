@@ -9,6 +9,31 @@ class ConfigError(RuntimeError):
     """Raised when required environment configuration is missing or invalid."""
 
 
+def _build_database_url(data: dict[str, str]) -> str:
+    """Build DATABASE_URL from individual components or use existing value.
+    
+    If DATABASE_URL is set, use it directly. Otherwise, build it from
+    DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, and DB_NAME components.
+    """
+    existing_url = data.get("DATABASE_URL", "").strip()
+    if existing_url:
+        return existing_url
+    
+    # Build from individual components
+    required_keys = ["DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT", "DB_NAME"]
+    missing = [k for k in required_keys if not data.get(k, "").strip()]
+    if missing:
+        raise ConfigError(
+            f"Either DATABASE_URL or all of {required_keys} must be set. "
+            f"Missing: {missing}"
+        )
+    
+    return (
+        f"postgresql://{data['DB_USER']}:{data['DB_PASSWORD']}"
+        f"@{data['DB_HOST']}:{data['DB_PORT']}/{data['DB_NAME']}"
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class AppConfig:
     """Main application configuration."""
@@ -36,7 +61,7 @@ class AppConfig:
             raise ConfigError("OPENAI_TEMPERATURE must be a float") from exc
 
         return cls(
-            database_url=require("DATABASE_URL"),
+            database_url=_build_database_url(data),
             openai_api_key=require("OPENAI_API_KEY"),
             tavily_api_key=require("TAVILY_API_KEY"),
             openai_model=data.get("OPENAI_MODEL", "gpt-4o-mini") or "gpt-4o-mini",
