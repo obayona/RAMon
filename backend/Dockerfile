@@ -12,19 +12,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install Python dependencies
 # Copy chatbot package first (it's a local dependency)
 COPY chatbot /app/chatbot
-RUN pip install --no-cache-dir -e /app/chatbot
 
-# Copy and install backend requirements
-COPY backend/requirements.txt /app/backend/requirements.txt
-RUN pip install --no-cache-dir -r /app/backend/requirements.txt
-
-# Copy backend source code
-COPY backend /app/backend
+# Copy backend code and install requirements
+COPY backend/ /app/backend/
+WORKDIR /app/backend
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Make entrypoint executable
-RUN chmod +x /app/backend/entrypoint.sh
-
-WORKDIR /app/backend
+RUN chmod +x entrypoint.sh
 
 # Expose the FastAPI port
 EXPOSE 8000

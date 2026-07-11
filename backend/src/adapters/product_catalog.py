@@ -29,7 +29,7 @@ class PostgresProductCatalog:
 
         async with self._pool.connection() as conn:
             cursor = await conn.execute(
-                "SELECT id, product_id, sku, name, description, categories, price, url, stock "
+                "SELECT id, product_id, sku, name, description, categories, price, stock "
                 "FROM products WHERE product_id = %s",
                 (product_id,),
             )
