@@ -46,7 +46,7 @@ class PostgresProductRepository:
         params.append(limit)
 
         sql = f"""
-            SELECT id, name, description, price, url, stock
+            SELECT id, product_id, sku, name, description, categories, price, stock
             FROM products
             {where_clause}
             ORDER BY embedding <=> %s::vector
@@ -61,10 +61,12 @@ class PostgresProductRepository:
         products: List[Product] = [
             {
                 "id": row["id"],
+                "product_id": row["product_id"],
+                "sku": row["sku"] or "",
                 "name": row["name"],
-                "description": row["description"],
+                "description": row["description"] or "",
+                "categories": row["categories"] or "",
                 "price": row["price"],
-                "url": row["url"],
                 "stock": row["stock"],
             }
             for row in rows

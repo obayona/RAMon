@@ -25,20 +25,24 @@ services:
       DATABASE_URL: postgresql://ramon:ramon_dev_password@postgres:5432/ramon
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       TAVILY_API_KEY: ${TAVILY_API_KEY}
-      APP_KEY: ${APP_KEY}
-      GUEST_USER: ${GUEST_USER}
-      GUEST_PASSWORD: ${GUEST_PASSWORD}
+      APP_KEY: ${APP_KEY:-dev_secret_key_change_in_production}
+      GUEST_USER: ${GUEST_USER:-guest}
+      GUEST_PASSWORD: ${GUEST_PASSWORD:-guest}
     depends_on:
       postgres:
         condition: service_healthy
     entrypoint: ["/bin/bash", "/app/backend/entrypoint.sh"]
-    command: ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8080", "--reload"]
+    command: ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     develop:
       watch:
         # Sync backend source code changes
         - action: sync
           path: ./backend/src
           target: /app/backend/src
+        # Sync migrations
+        - action: sync
+          path: ./backend/migrations
+          target: /app/backend/migrations
         # Sync chatbot package changes  
         - action: sync
           path: ./chatbot/chatbot
@@ -51,8 +55,9 @@ services:
           path: ./backend/index.html
           target: /app/backend/index.html
 
-  # One-off service to load product fixtures
-  fixtures:
+  # Generate embeddings from CSV (calls OpenAI API)
+  # Usage: docker compose run --rm fixtures-generate
+  fixtures-generate:
     build:
       context: .
       dockerfile: backend/Dockerfile
@@ -64,6 +69,42 @@ services:
         condition: service_healthy
     working_dir: /app/tools/pg_vector_importer
     command: ["python", "importer.py"]
+    profiles:
+      - fixtures
+
+  # Export products with embeddings to CSV (for creating fixtures)
+  # Usage: docker compose run --rm fixtures-export
+  fixtures-export:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://ramon:ramon_dev_password@postgres:5432/ramon
+    depends_on:
+      postgres:
+        condition: service_healthy
+    working_dir: /app/tools/pg_vector_importer
+    volumes:
+      - ./fixtures:/app/fixtures
+    command: ["python", "importer.py", "--export", "/app/fixtures/products_with_embeddings.csv"]
+    profiles:
+      - fixtures
+
+  # Load products from fixtures CSV (no API calls, uses pre-computed embeddings)
+  # Usage: docker compose run --rm fixtures-load
+  fixtures-load:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://ramon:ramon_dev_password@postgres:5432/ramon
+    depends_on:
+      postgres:
+        condition: service_healthy
+    working_dir: /app/tools/pg_vector_importer
+    volumes:
+      - ./fixtures:/app/fixtures
+    command: ["python", "importer.py", "--fixtures", "/app/fixtures/products_with_embeddings.csv"]
     profiles:
       - fixtures
 

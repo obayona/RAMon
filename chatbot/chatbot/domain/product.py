@@ -4,11 +4,13 @@ from langgraph.graph.message import add_messages
 
 
 class Product(TypedDict):
-    id: str
+    id: int
+    product_id: str
+    sku: str
     name: str
     description: str
+    categories: str
     price: float
-    url: str
     stock: int
 
 

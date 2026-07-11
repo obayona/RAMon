@@ -80,11 +80,12 @@ async def run_demo():
         print("=" * 72)
 
         current_ram: Product = {
-            "id": "ram-001",
+            "id": "550e8400-e29b-41d4-a716-446655440000",
+            "sku": "ram-001",
             "name": "Corsair Vengeance LPX (2x8GB) DDR4",
             "description": "DDR4 3200MHz CL16, 1.35V, Intel XMP 2.0, black PCB, dual-channel desktop memory kit",
+            "categories": "Memory",
             "price": 49.99,
-            "url": "/products/ram-001",
             "stock": 10,
         }
 

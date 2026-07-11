@@ -1,0 +1,8 @@
+# This directory stores product fixtures with pre-computed embeddings.
+# 
+# To generate fixtures (requires OPENAI_API_KEY):
+#   docker compose run --rm fixtures-generate
+#   docker compose run --rm fixtures-export
+#
+# To load fixtures (no API key needed):
+#   docker compose run --rm fixtures-load

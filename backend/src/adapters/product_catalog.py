@@ -26,13 +26,11 @@ class PostgresProductCatalog:
         Returns:
             The product if found, None otherwise.
         """
-        if not product_id:
-            return None
 
         async with self._pool.connection() as conn:
             cursor = await conn.execute(
-                "SELECT id, name, description, price, url, stock "
-                "FROM products WHERE id = %s",
+                "SELECT id, product_id, sku, name, description, categories, price, url, stock "
+                "FROM products WHERE product_id = %s::uuid",
                 (product_id,),
             )
             row = await cursor.fetchone()
@@ -41,9 +39,11 @@ class PostgresProductCatalog:
 
             return Product(
                 id=row["id"],
+                product_id=str(row["product_id"]),
+                sku=row["sku"] or "",
                 name=row["name"],
-                description=row["description"],
+                description=row["description"] or "",
+                categories=row["categories"] or "",
                 price=row["price"],
-                url=row["url"],
                 stock=row["stock"],
             )
