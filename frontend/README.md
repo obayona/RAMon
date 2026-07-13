@@ -30,10 +30,9 @@ frontend/
 ├── vite.config.ts         # Dev config
 ├── vite.widget.config.ts  # Production build config
 └── dist-widget/           # Built output
-    ├── ramon.js
-    ├── ramon-burble.js
-    ├── ramon-burble.css
-    └── *.woff2
+    ├── ramon.js           # Loader
+    ├── ramon-burble.js    # Widget (CSS inlined)
+    └── *.woff2            # Fonts
 ```
 
 ## Scripts
@@ -77,9 +76,9 @@ pnpm start
 ```
 
 The loader:
-1. Loads `ramon-burble.css` and `ramon-burble.js`
+1. Loads `ramon-burble.js` (CSS is inlined)
 2. Widget reads config from `window.__RAMON_CONFIG__`
-3. Widget self-mounts to the page
+3. Widget mounts inside Shadow DOM (styles isolated from host page)
 
 ## Environment Variables
 
