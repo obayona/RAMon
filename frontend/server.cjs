@@ -48,58 +48,60 @@ function renderHTML(token, scriptTag) {
   </style>
 </head>
 <body>
-  <header>
-    <h1>TechStore</h1>
-    <nav>
-      <a href="#">Home</a>
-      <a href="#">CPUs</a>
-      <a href="#">GPUs</a>
-      <a href="#">RAM</a>
-      <a href="#">Storage</a>
-    </nav>
-  </header>
+  <div style="min-height: 100dvh; display: flex; flex-direction: column; justify-content: space-between;">
+    <header>
+      <h1>TechStore</h1>
+      <nav>
+        <a href="#">Home</a>
+        <a href="#">CPUs</a>
+        <a href="#">GPUs</a>
+        <a href="#">RAM</a>
+        <a href="#">Storage</a>
+      </nav>
+    </header>
 
-  <main>
-    <div class="hero">
-      <h2>Build Your Dream PC</h2>
-      <p>Find the best hardware components for your needs. Chat with our AI assistant for recommendations!</p>
-    </div>
+    <main>
+      <div class="hero">
+        <h2>Build Your Dream PC</h2>
+        <p>Find the best hardware components for your needs. Chat with our AI assistant for recommendations!</p>
+      </div>
 
-    <div class="products">
-      <div class="product">
-        <img src="https://placehold.co/300x150/f1f5f9/64748b?text=CPU" alt="CPU">
-        <h3>AMD Ryzen 7 7800X3D</h3>
-        <div class="specs">8 Cores, 16 Threads, 4.2GHz Base</div>
-        <div class="price">$449.99</div>
-        <button>Add to Cart</button>
+      <div class="products">
+        <div class="product">
+          <img src="https://placehold.co/300x150/f1f5f9/64748b?text=CPU" alt="CPU">
+          <h3>AMD Ryzen 7 7800X3D</h3>
+          <div class="specs">8 Cores, 16 Threads, 4.2GHz Base</div>
+          <div class="price">$449.99</div>
+          <button>Add to Cart</button>
+        </div>
+        <div class="product">
+          <img src="https://placehold.co/300x150/f1f5f9/64748b?text=GPU" alt="GPU">
+          <h3>NVIDIA RTX 4070 Super</h3>
+          <div class="specs">12GB GDDR6X, 7168 CUDA Cores</div>
+          <div class="price">$599.99</div>
+          <button>Add to Cart</button>
+        </div>
+        <div class="product">
+          <img src="https://placehold.co/300x150/f1f5f9/64748b?text=RAM" alt="RAM">
+          <h3>Corsair Vengeance DDR5</h3>
+          <div class="specs">32GB (2x16GB), 6000MHz, CL36</div>
+          <div class="price">$129.99</div>
+          <button>Add to Cart</button>
+        </div>
+        <div class="product">
+          <img src="https://placehold.co/300x150/f1f5f9/64748b?text=SSD" alt="SSD">
+          <h3>Samsung 990 Pro NVMe</h3>
+          <div class="specs">2TB, 7450MB/s Read, PCIe 4.0</div>
+          <div class="price">$179.99</div>
+          <button>Add to Cart</button>
+        </div>
       </div>
-      <div class="product">
-        <img src="https://placehold.co/300x150/f1f5f9/64748b?text=GPU" alt="GPU">
-        <h3>NVIDIA RTX 4070 Super</h3>
-        <div class="specs">12GB GDDR6X, 7168 CUDA Cores</div>
-        <div class="price">$599.99</div>
-        <button>Add to Cart</button>
-      </div>
-      <div class="product">
-        <img src="https://placehold.co/300x150/f1f5f9/64748b?text=RAM" alt="RAM">
-        <h3>Corsair Vengeance DDR5</h3>
-        <div class="specs">32GB (2x16GB), 6000MHz, CL36</div>
-        <div class="price">$129.99</div>
-        <button>Add to Cart</button>
-      </div>
-      <div class="product">
-        <img src="https://placehold.co/300x150/f1f5f9/64748b?text=SSD" alt="SSD">
-        <h3>Samsung 990 Pro NVMe</h3>
-        <div class="specs">2TB, 7450MB/s Read, PCIe 4.0</div>
-        <div class="price">$179.99</div>
-        <button>Add to Cart</button>
-      </div>
-    </div>
-  </main>
+    </main>
 
-  <footer>
-    <p>&copy; 2024 TechStore - Demo E-commerce Site</p>
-  </footer>
+    <footer>
+      <p>&copy; 2024 TechStore - Demo E-commerce Site</p>
+    </footer>
+  </div>
 
   <script>
     window.__RAMON_CONFIG__ = {
