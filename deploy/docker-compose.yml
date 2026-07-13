@@ -1,7 +1,7 @@
 services:
   postgres:
     image: pgvector/pgvector:pg16
-    env_file: backend/.env
+    env_file: ../backend/.env
     environment:
       POSTGRES_USER: ${DB_USER:-ramon}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-ramon}
@@ -18,11 +18,11 @@ services:
 
   backend:
     build:
-      context: .
+      context: ..
       dockerfile: backend/Dockerfile
     ports:
       - "8000:8000"
-    env_file: backend/.env
+    env_file: ../backend/.env
     environment:
       # Override DB_HOST to use docker service name instead of localhost
       DB_HOST: postgres
@@ -35,31 +35,31 @@ services:
       watch:
         # Sync backend source code changes
         - action: sync
-          path: ./backend/src
+          path: ../backend/src
           target: /app/backend/src
         # Sync migrations
         - action: sync
-          path: ./backend/migrations
+          path: ../backend/migrations
           target: /app/backend/migrations
         # Sync chatbot package changes  
         - action: sync
-          path: ./chatbot/chatbot
+          path: ../chatbot/chatbot
           target: /app/chatbot/chatbot
         # Rebuild on requirements change
         - action: rebuild
-          path: ./backend/requirements.txt
+          path: ../backend/requirements.txt
         # Sync index.html for UI changes
         - action: sync
-          path: ./backend/index.html
+          path: ../backend/index.html
           target: /app/backend/index.html
 
   # Load products from fixtures/ (no API calls, uses pre-computed embeddings)
   # Usage: docker compose run --rm fixtures-load
   fixtures-load:
     build:
-      context: .
+      context: ..
       dockerfile: backend/Dockerfile
-    env_file: backend/.env
+    env_file: ../backend/.env
     environment:
       DB_HOST: postgres
     depends_on:

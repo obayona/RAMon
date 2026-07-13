@@ -6,11 +6,11 @@ services:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
-    env_file: .env
+    env_file: ../backend/.env
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -19,10 +19,10 @@ services:
 
   api:
     build:
-      context: .
+      context: ..
       dockerfile: backend/Dockerfile.prod
     restart: unless-stopped
-    env_file: .env
+    env_file: ../backend/.env
     environment:
       DB_HOST: postgres
     depends_on:
@@ -70,9 +70,9 @@ services:
   # Usage: docker compose -f docker-compose.prod.yml run --rm fixtures-load
   fixtures-load:
     build:
-      context: .
+      context: ..
       dockerfile: backend/Dockerfile.prod
-    env_file: .env
+    env_file: ../backend/.env
     environment:
       DB_HOST: postgres
     depends_on:
