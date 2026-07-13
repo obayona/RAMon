@@ -5,21 +5,15 @@ a WebSocket API for real-time streaming conversations and bundles a lightweight 
 
 ## Configure environment variables
 
-Create a `.env` on the project root using `.env.example` as reference:
+Create a `.env` file using `.env.example` as reference:
 
 ```bash
 cp .env.example .env
 # Edit .env and add your API keys
 ```
 
-Create a link to the root `.env`
-
-```bash
-ln -s ../.env .env
-```
-
 Required variables:
-- `DATABASE_URL` - PostgreSQL connection string
+- `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `DB_NAME` - PostgreSQL connection settings
 - `OPENAI_API_KEY` - OpenAI API key
 - `TAVILY_API_KEY` - Tavily API key
 - `APP_KEY` - Secret key for JWT signing
@@ -31,9 +25,14 @@ Required variables:
 
 The easiest way to run the backend is with Docker Compose, which handles PostgreSQL, migrations, and the FastAPI server.
 
+> **Note:** Docker Compose files are located in the `deploy/` folder at the repository root.
+> All docker compose commands should be run from that directory.
+> You should create on `deploy` a symblink of the `backend/.env` file
+
 ### 1. Start the development stack
 
 ```bash
+cd ../deploy
 docker compose up --watch
 ```
 
@@ -48,12 +47,14 @@ The server will be available at `http://localhost:8000`.
 ### 2. Load product fixtures
 
 ```bash
+cd ../deploy
 docker compose run --rm fixtures-load
 ```
 
 ### 3. Stop the stack
 
 ```bash
+cd ../deploy
 docker compose down        # Stop containers
 docker compose down -v     # Stop and remove volumes (fresh start)
 ```
