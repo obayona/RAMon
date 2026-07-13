@@ -27,9 +27,6 @@ load_dotenv()
 
 def _get_database_url() -> str:
     """Build DATABASE_URL from individual components or use existing value."""
-    existing_url = os.environ.get("DATABASE_URL", "").strip()
-    if existing_url:
-        return existing_url
     
     return (
         f"postgresql://{os.environ['DB_USER']}:{os.environ['DB_PASSWORD']}"

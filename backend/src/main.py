@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from langgraph.checkpoint.postgres.aio import AsyncShallowPostgresSaver
 
 from chatbot import ChatbotBuilder
@@ -74,6 +75,18 @@ def create_app() -> FastAPI:
     app.include_router(chat_router)
     app.include_router(websocket_router)
 
+    # CORS middleware - allow all origins
+    # Must be added after routes for Starlette middleware stack order
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+        max_age=600,
+    )
+    
     return app
 
 

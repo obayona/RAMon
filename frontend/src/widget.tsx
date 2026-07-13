@@ -2,7 +2,7 @@ import { createRoot } from 'react-dom/client';
 import RamonWidget from './widget/RamonWidget';
 import { RamonProvider } from './context/RamonContext';
 import { getConfig } from './widget/getConfig';
-import styles from './App.css?inline';
+import styles from './widget.css?inline';
 
 const config = getConfig();
 

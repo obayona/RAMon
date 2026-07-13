@@ -5,7 +5,14 @@ require('dotenv').config();
 
 const PORT = process.env.PORT || 3000;
 const APP_KEY = process.env.APP_KEY;
+const API_URL = process.env.API_URL;
+const ASSETS_URL = process.env.ASSETS_URL;
 const isDev = process.argv.includes('--dev');
+
+if (!API_URL) {
+  console.error('API_URL environment variable is required');
+  process.exit(1);
+}
 
 if (!APP_KEY) {
   console.error('APP_KEY environment variable is required');
@@ -107,7 +114,8 @@ function renderHTML(token, scriptTag) {
     window.__RAMON_CONFIG__ = {
       token: "${token}",
       productId: "230670",
-      apiUrl: "http://localhost:8080"
+      apiUrl: "${API_URL}",
+      assetsUrl: "${ASSETS_URL}",
     };
   </script>
   ${scriptTag}
