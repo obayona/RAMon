@@ -38,7 +38,7 @@ def _get_database_url() -> str:
 # --- Configuration ---
 DB_URL = _get_database_url()
 OUTPUT_FILE = "fixture.pkl.gz"
-ROW_LIMIT = 100
+ROW_LIMIT = 150
 
 def dump_pgvector_table(output):    
     try:
@@ -63,7 +63,9 @@ def dump_pgvector_table(output):
             "columns": column_names,
             "data": rows
         }
-        
+        print(payload['columns'])
+        print(payload["data"][0])
+        exit()
         # Write to a GZIP compressed Pickle (Binary) file
         print(f"Compressing and writing to {output}...")
         with gzip.open(output, 'wb') as f:

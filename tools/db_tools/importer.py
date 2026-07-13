@@ -29,10 +29,6 @@ load_dotenv()
 
 def _get_database_url() -> str:
     """Build DATABASE_URL from individual components or use existing value."""
-    existing_url = os.environ.get("DATABASE_URL", "").strip()
-    if existing_url:
-        return existing_url
-    
     return (
         f"postgresql://{os.environ['DB_USER']}:{os.environ['DB_PASSWORD']}"
         f"@{os.environ['DB_HOST']}:{os.environ['DB_PORT']}/{os.environ['DB_NAME']}"
@@ -76,14 +72,15 @@ def import_products(csv_file: Path) -> None:
 
         batch = []
         for i, row in enumerate(products):
-            
+            price = row["Regular price"]
+            price = float(price.replace(",", "."))
             product = {
                 "product_id": row.get("ID"),
                 "sku": row.get("SKU", ""),
                 "name": row["Name"],
                 "description": row.get("Description", ""),
-                "stock": int(row["Stock"]) if row.get("stock") else 0,
-                "price": float(row["Sale price"]) if row.get("Sale price") else 0.0,
+                "stock": int(row["Stock"]),
+                "price": price,
                 "categories": row.get("Categories", "")
             }
             text_for_embedding = f"name: {product['name']}\ndescription: {product['description']}\ncategories: {product['categories']}"
