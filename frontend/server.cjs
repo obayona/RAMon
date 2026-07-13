@@ -1,9 +1,28 @@
-<!DOCTYPE html>
+const express = require('express');
+const jwt = require('jsonwebtoken');
+const path = require('path');
+require('dotenv').config();
+
+const PORT = process.env.PORT || 3000;
+const APP_KEY = process.env.APP_KEY;
+const isDev = process.argv.includes('--dev');
+
+if (!APP_KEY) {
+  console.error('APP_KEY environment variable is required');
+  process.exit(1);
+}
+
+function generateToken() {
+  const payload = { iat: Math.floor(Date.now() / 1000) };
+  return jwt.sign(payload, APP_KEY, { expiresIn: '24h' });
+}
+
+function renderHTML(token, scriptTag) {
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="./static/ramon_vite.css">
   <title>TechStore - Computer Hardware</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -82,12 +101,61 @@
     <p>&copy; 2024 TechStore - Demo E-commerce Site</p>
   </footer>
 
-  <!-- RAMon Chat Widget Configuration -->
-  <script id="ramon-config" type="application/json">
-    {"token": "[TOKEN]", "productId": "230670", "apiUrl":"http://localhost:8080"}
+  <script>
+    window.__RAMON_CONFIG__ = {
+      token: "${token}",
+      productId: "230670",
+      apiUrl: "http://localhost:8080"
+    };
   </script>
-  
-  <!-- RAMon Chat Widget Script -->
-  <script src="/static/ramon_vite.js"></script>
+  ${scriptTag}
 </body>
-</html>
+</html>`;
+}
+
+async function startDev() {
+  const { createServer } = await import('vite');
+  const app = express();
+
+  const vite = await createServer({
+    root: __dirname,
+    server: { middlewareMode: true },
+  });
+
+  // Handle root route BEFORE Vite middleware
+  app.get('/', async (req, res) => {
+    const token = generateToken();
+    let html = renderHTML(token, '<script type="module" src="/src/widget.tsx"></script>');
+    // Transform HTML to inject Vite's HMR preamble
+    html = await vite.transformIndexHtml(req.url, html);
+    res.type('html').send(html);
+  });
+
+  app.use(vite.middlewares);
+
+  app.listen(PORT, () => {
+    console.log(`Dev server (HMR enabled) at http://localhost:${PORT}`);
+  });
+}
+
+function startProd() {
+  const app = express();
+
+  app.use('/assets', express.static(path.join(__dirname, 'dist-widget')));
+
+  app.get('/', (req, res) => {
+    const token = generateToken();
+    const html = renderHTML(token, '<script src="/assets/ramon.js"></script>');
+    res.type('html').send(html);
+  });
+
+  app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
+  });
+}
+
+if (isDev) {
+  startDev();
+} else {
+  startProd();
+}

@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
-
 import path from 'path';
 
 export default defineConfig({
@@ -15,14 +14,18 @@ export default defineConfig({
 
    build: {
       outDir: 'dist-widget',
+      emptyOutDir: true,
 
       rollupOptions: {
          input: path.resolve(__dirname, 'widget.html'),
 
          output: {
-            entryFileNames: 'ramon.js',
-            chunkFileNames: 'ramon.js',
-            assetFileNames: '[name][extname]',
+            entryFileNames: 'ramon-burble.js',
+            chunkFileNames: 'ramon-burble.js',
+            assetFileNames: (assetInfo) => {
+               if (assetInfo.name?.endsWith('.css')) return 'ramon-burble.css';
+               return '[name][extname]';
+            },
             manualChunks: undefined,
          },
       },
