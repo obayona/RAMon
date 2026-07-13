@@ -16,7 +16,6 @@ export function useChat() {
    function handleMessage(event: MessageEvent) {
       const data: WSMessage = JSON.parse(event.data);
 
-      console.log(data);
       if (data.type === 'text') {
          setLoading(false);
 

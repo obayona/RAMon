@@ -36,7 +36,7 @@ export default function ProductCard({ product }: Props) {
                   ${product.price?.toFixed(2)}
                </span>
 
-               <Button size='sm'>Ver</Button>
+               <a href={`/p=${product.product_id}`} className='border border-solid p-2'>Ver</a>
             </div>
          </CardContent>
       </Card>

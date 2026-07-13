@@ -2,9 +2,12 @@ import type { ChatMessage, Product } from '@/types/chat';
 
 interface HistoryResponse {
    id: string;
-   role: 'user' | 'assistant';
-   content?: string;
-   products?: Product[];
+   type: 'human' | 'ai';
+   text?: string;
+   ui_data?: {
+      layout: 'carousel';
+      products: Product[];
+   };
 }
 
 interface LoadHistoryParams {
@@ -30,10 +33,10 @@ export async function loadHistory({
 
    const data: HistoryResponse[] = await response.json();
 
-   return data.map((message, index) => ({
-      id: `history-${index}`,
-      role: message.role,
-      content: message.content,
-      products: message.products,
+   return data.map((message) => ({
+      id: message.id,
+      role: message.type === 'human' ? 'user' : 'assistant',
+      content: message.text,
+      products: message.ui_data?.products,
    }));
 }
