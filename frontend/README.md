@@ -55,6 +55,8 @@ Starts a single server that:
 - Serves widget source via Vite (unminified, source maps)
 - Hot-reloads on code changes
 
+This server is a fake e-commerce website that injects the chatbot widget
+
 ## Production
 
 ```bash
@@ -82,7 +84,4 @@ The loader:
 
 ## Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `APP_KEY` | Secret key for signing JWT tokens |
-| `PORT` | Server port (default: 3000) |
+Defined on `.env.example`

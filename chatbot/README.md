@@ -1,6 +1,6 @@
 # RAMon Chatbot
 
-Shared chatbot library for RAMon - a technical assistance chatbot for computer e-commerce.
+Shared chatbot library for RAMon — a technical assistance chatbot for computer e-commerce.
 
 This package provides the core chatbot functionality using LangGraph, OpenAI, pgvector,
 and Tavily. It is designed to be used by both the backend server and CLI tools.
@@ -13,7 +13,7 @@ The package follows clean architecture principles with three layers:
 chatbot/
 ├── domain/           # Core domain models (Product, AgentState)
 ├── application/      # Business logic (ChatbotService, graph workflow)
-└── infrastructure/   # External adapters (PostgreSQL catalog, LangGraph tools)
+└── adapters/         # External adapters (OpenAI embeddings, PostgreSQL catalog)
 ```
 
 ### LangGraph Workflow
@@ -22,9 +22,9 @@ The chatbot is implemented as a LangGraph state machine:
 
 ![LangGraph flow](graph.png)
 
-- `chatbot` - Routes messages through OpenAI with system prompt and product context
-- `tools` - Executes LangChain tools (product search, web search)
-- `process_tool_results` - Extracts structured recommendations for UI rendering
+- `chatbot` — Routes messages through OpenAI with system prompt and product context
+- `tools` — Executes LangChain tools (product search, web search)
+- `process_tool_results` — Extracts structured recommendations for UI rendering
 
 ## Installation
 
@@ -34,7 +34,7 @@ Install in editable mode from another project (e.g., backend or cli):
 pip install -e ../chatbot
 ```
 
-Or add to requirements.txt:
+Or add to `requirements.txt`:
 
 ```
 -e ../chatbot
@@ -42,69 +42,123 @@ Or add to requirements.txt:
 
 ## Quick Start
 
+The only way to build the service is through `ChatbotBuilder`. It uses a
+fluent/chainable API so you can configure every dependency step by step:
+
 ```python
-from chatbot import create_chatbot
+from chatbot import ChatbotBuilder
 
-# Create chatbot with default settings (loads from environment)
-bot = create_chatbot()
-
-# Simple query
-result = bot.invoke("Recommend a gaming laptop under $1000")
-print(result["messages"][-1].content)
+chatbot = (
+    ChatbotBuilder()
+    .with_openai(api_key="sk-...")
+    .with_tavily(api_key="tvly-...")
+    .with_product_repository(PostgresProductRepository(pool))
+    .build()
+)
 ```
 
 ## API Reference
 
-### Factory Functions
+### ChatbotBuilder
+
+`ChatbotBuilder` is the single entry point for creating a `ChatbotService`. Every
+method returns `self`, so calls can be chained. Three configuration steps are
+**required** before calling `build()`:
+
+| Method | Required | Description |
+|---|---|---|
+| `with_openai(api_key, ...)` | **Yes** | Configure OpenAI API key, model, and embedding model. |
+| `with_tavily(api_key, ...)` | **Yes** | Configure Tavily web-search API key. |
+| `with_product_repository(repo)` | **Yes** | Provide a `ProductRepository` implementation. |
+
+Optional configuration:
+
+| Method | Default | Description |
+|---|---|---|
+| `with_checkpointer(checkpointer)` | `MemorySaver` (in-memory) | Use a persistent checkpointer (e.g., `AsyncShallowPostgresSaver`) for production. |
+| `with_embedding_service(service)` | `OpenAIEmbeddingService` | Override the embedding service (useful for testing). |
+| `with_openai_client(client, ...)` | — | Pass a pre-configured `OpenAI` client instance. |
+| `with_tavily_client(client)` | — | Pass a pre-configured `TavilySearch` client instance. |
+
+
+#### Usage with Postgres checkpointer
 
 ```python
-from chatbot import create_chatbot, build_chatbot_components
-
-# Simple initialization (uses MemorySaver for state)
-bot = create_chatbot()
-
-# Full control over initialization
-from chatbot import ChatbotSettings, build_chatbot_components
+from psycopg_pool import AsyncConnectionPool
+from chatbot import ChatbotBuilder
+from chatbot.adapters import PostgresProductRepository
 from langgraph.checkpoint.postgres.aio import AsyncShallowPostgresSaver
 
-settings = ChatbotSettings.from_env()
-async with AsyncShallowPostgresSaver.from_conn_string(settings.database_url) as saver:
-    components = build_chatbot_components(settings, saver)
-    service = components.service
-    catalog = components.product_catalog
+db_pool = AsyncConnectionPool(
+    conninfo=DB_URL,
+    min_size=2,
+    max_size=10,
+    open=False,
+    kwargs={
+        "autocommit": True,
+        "row_factory": dict_row
+    }
+)
+await db_pool.open()
+
+ChatbotBuilder()
+    .with_openai(
+        api_key=app_config.openai_api_key,
+        model=app_config.openai_model,
+        temperature=app_config.openai_temperature,
+    )
+    .with_tavily(api_key=app_config.tavily_api_key)
+    .with_checkpointer(AsyncShallowPostgresSaver(db_pool))
+    .with_product_repository(PostgresProductRepository(db_pool))
+    .build()
 ```
 
 ### ChatbotService
 
 ```python
 # Synchronous invocation
-result = bot.invoke(
+result = chatbot.invoke(
     message="Find me a 4K monitor",
     current_product=None,  # Optional product context
     chat_id="session-123",
 )
 
 # Async streaming
-async for chunk in bot.stream(message="...", chat_id="..."):
+async for chunk in chatbot.stream(message="...", chat_id="..."):
     print(chunk)
 
 # Get chat history
-history = await bot.get_chat_history("session-123")
+history = await chatbot.get_chat_history("session-123")
 ```
 
-### Domain Models
+### Tools
+
+The chatbot uses two LangChain tools (registered automatically via `build_tools`):
+
+#### `recommend_products`
+
+Semantic product search using embeddings. Accepts a natural language query and
+optional `min_price` / `max_price` filters. Returns the top 3 matching products
+as JSON.
 
 ```python
-from chatbot import Product, AgentState
+@tool
+async def recommend_products(
+    query: str,
+    min_price: float | None = None,
+    max_price: float | None = None,
+) -> str
+```
 
-product: Product = {
-    "id": "prod-001",
-    "name": "Product Name",
-    "description": "Product description",
-    "price": 99.99,
-    "url": "/products/prod-001",
-    "stock": 10,
-}
+#### `search_component_spec`
+
+Fetches technical specifications for an external hardware component (motherboard,
+CPU, GPU, etc.) from the web via Tavily. Useful when the user asks about
+compatibility with hardware they already own.
+
+```python
+@tool
+async def search_component_spec(component_model: str) -> str
 ```
 
 ### Graph Visualization
@@ -112,17 +166,15 @@ product: Product = {
 Generate a PNG image of the LangGraph workflow:
 
 ```python
-from chatbot import create_chatbot, save_graph_image
+from chatbot import save_graph_image
 
-bot = create_chatbot()
-save_graph_image(bot, "graph.png")
+save_graph_image(chatbot, "graph.png")
 ```
 
 Or get the raw bytes:
 
 ```python
-from chatbot import create_chatbot, generate_graph_image
+from chatbot import generate_graph_image
 
-bot = create_chatbot()
-png_bytes = generate_graph_image(bot)
+png_bytes = generate_graph_image(chatbot)
 ```

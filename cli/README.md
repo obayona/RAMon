@@ -27,13 +27,11 @@ This installs the `chatbot` package in editable mode.
 
 ### 3. Configure environment variables
 
-Create a `.env` file or create a symlink to the root `.env`:
+Create a `.env` file based on `.env.example` and edit it with valid variables:
 
 ```bash
-ln -s ../.env .env
+cp .env.example .env
 ```
-
-Check ../.env.example
 
 ## Available Scripts
 
