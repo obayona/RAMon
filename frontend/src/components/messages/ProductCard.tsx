@@ -1,4 +1,3 @@
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import type { Product } from '@/types/chat';
 import { Cpu } from 'lucide-react';

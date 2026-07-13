@@ -10,7 +10,7 @@
    var assetsUrl = config.assetsUrl;
 
    var s = document.createElement('script');
-   s.src = assetsUrlUrl + 'ramon-burble.js';
+   s.src = assetsUrl + '/ramon-burble.js';
    s.defer = true;
    document.body.appendChild(s);
 })();
