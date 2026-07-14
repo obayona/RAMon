@@ -62,14 +62,3 @@ USER appuser
 
 # Expose the FastAPI port
 EXPOSE 8000
-
-# Production command: run with gunicorn + uvicorn workers
-# - Workers: 2-4 x CPU cores (configurable via env)
-# - No reload in production
-CMD ["gunicorn", "src.main:app", \
-    "--worker-class", "uvicorn.workers.UvicornWorker", \
-    "--workers", "2", \
-    "--bind", "0.0.0.0:8000", \
-    "--access-logfile", "-", \
-    "--error-logfile", "-", \
-    "--capture-output"]

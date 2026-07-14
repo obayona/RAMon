@@ -29,6 +29,20 @@ services:
       postgres:
         condition: service_healthy
     entrypoint: ["/bin/bash", "/app/backend/entrypoint.sh"]
+    command:
+      - gunicorn
+      - src.main:app
+      - --worker-class
+      - uvicorn.workers.UvicornWorker
+      - --workers
+      - "2"
+      - --bind
+      - 0.0.0.0:8000
+      - --access-logfile
+      - "-"
+      - --error-logfile
+      - "-"
+      - --capture-output
     expose:
       - "8000"
     networks:

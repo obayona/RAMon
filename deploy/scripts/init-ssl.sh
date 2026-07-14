@@ -39,13 +39,16 @@ sleep 10
 # Step 2: Request SSL certificate
 echo ""
 echo "Step 2: Requesting SSL certificate from Let's Encrypt..."
-docker compose -f docker-compose.prod.yml run --rm certbot certonly \
-    --webroot \
-    --webroot-path=/var/www/certbot \
-    --email "$CERTBOT_EMAIL" \
-    --agree-tos \
-    --no-eff-email \
-    -d "$DOMAIN"
+docker compose -f docker-compose.prod.yml run --rm \
+  --entrypoint certbot \
+  certbot \
+  certonly \
+  --webroot \
+  -w /var/www/certbot \
+  --email "$CERTBOT_EMAIL" \
+  --agree-tos \
+  --no-eff-email \
+  -d "$DOMAIN"
 
 # Step 3: Generate nginx config with SSL
 echo ""
