@@ -16,29 +16,38 @@ define('RAMON_CHATBOT_VERSION', '1.0.0');
 define('RAMON_CHATBOT_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('RAMON_CHATBOT_PLUGIN_URL', plugin_dir_url(__FILE__));
 
+require_once RAMON_CHATBOT_PLUGIN_DIR . 'includes/jwt.php';
+require_once RAMON_CHATBOT_PLUGIN_DIR . 'includes/class-ramon-initial-sync.php';
 require_once RAMON_CHATBOT_PLUGIN_DIR . 'admin/settings.php';
+require_once RAMON_CHATBOT_PLUGIN_DIR . 'sync.php';
 
-/**
- * Generate a JWT token signed with the app_key (HMAC-SHA256).
- */
-function ramon_chatbot_generate_token() {
-    $app_key = get_option('ramon_app_key', '');
-    if (empty($app_key)) {
-        return '';
-    }
+// ---------------------------------------------------------------------------
+// Plugin lifecycle hooks
+// ---------------------------------------------------------------------------
 
-    $header = ramon_chatbot_base64url_encode(json_encode(['alg' => 'HS256', 'typ' => 'JWT']));
-    $payload = ramon_chatbot_base64url_encode(json_encode(['iat' => time()]));
-    $signature = ramon_chatbot_base64url_encode(
-        hash_hmac('sha256', "$header.$payload", $app_key, true)
-    );
+$ramon_initial_sync = RAMon_Initial_Sync::instance();
 
-    return "$header.$payload.$signature";
-}
+register_activation_hook(__FILE__, [ $ramon_initial_sync, 'on_activate' ]);
+register_deactivation_hook(__FILE__, [ $ramon_initial_sync, 'on_deactivate' ]);
 
-function ramon_chatbot_base64url_encode($data) {
-    return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
-}
+// Cron callback
+add_action(RAMon_Initial_Sync::CRON_HOOK, [ $ramon_initial_sync, 'process_cron' ]);
+
+// Drop sync table after finalization
+add_action('admin_init', [ $ramon_initial_sync, 'maybe_drop_table' ]);
+
+// Register the one-minute cron interval
+add_filter('cron_schedules', function (array $schedules): array {
+    $schedules['one_minute'] = [
+        'interval' => 60,
+        'display'  => __('Every Minute', 'ramon-chatbot'),
+    ];
+    return $schedules;
+});
+
+// ---------------------------------------------------------------------------
+// Frontend helpers
+// ---------------------------------------------------------------------------
 
 /**
  * Check if the current page is a WooCommerce product page.
@@ -58,12 +67,14 @@ function ramon_chatbot_get_product_id() {
     return null;
 }
 
+// ---------------------------------------------------------------------------
+// Enqueue chatbot widget
+// ---------------------------------------------------------------------------
+
 /**
  * Enqueue the chatbot widget on the frontend.
- * Follows the same logic as startProd() in frontend/server.cjs:
- * - Injects __RAMON_CONFIG__ with token, apiUrl, assetsUrl, and optionally productId
- * - Loads ramon.js from the plugin's assets folder
- * - ramon.js uses assetsUrl to dynamically load ramon-burble.js
+ * Injects __RAMON_CONFIG__ with token, apiUrl, assetsUrl, and optionally productId,
+ * then loads ramon.js which bootstraps ramon-burble.js.
  */
 function ramon_chatbot_enqueue() {
     $app_key = get_option('ramon_app_key', '');

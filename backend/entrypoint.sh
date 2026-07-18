@@ -18,5 +18,14 @@ echo "PostgreSQL is ready!"
 echo "Running database migrations..."
 yoyo apply --database "$YOYO_DATABASE_URL" --batch
 
+# Start cron daemon for the sync worker
+if command -v crond &> /dev/null; then
+    echo "Starting cron daemon for sync worker..."
+    crond
+elif command -v cron &> /dev/null; then
+    echo "Starting cron daemon for sync worker..."
+    cron
+fi
+
 echo "Starting FastAPI server..."
 exec "$@"

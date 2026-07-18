@@ -14,6 +14,7 @@ from fastapi import Request, WebSocket
 from chatbot import ChatbotService
 from src.core.config import AuthConfig
 from src.domain.ports import ProductCatalog
+from src.domain.sync import SyncEnqueuer
 
 
 def _get_state_attr(scope: Request | WebSocket, attribute: str):
@@ -58,3 +59,10 @@ def get_product_catalog(request: Request) -> ProductCatalog:
 def get_product_catalog_ws(ws: WebSocket) -> ProductCatalog:
     """Get product catalog from WebSocket."""
     return _get_state_attr(ws, "product_catalog")
+
+
+# --- Sync Enqueuer ---
+
+def get_sync_enqueuer(request: Request) -> SyncEnqueuer:
+    """Get sync enqueuer from HTTP request."""
+    return _get_state_attr(request, "sync_enqueuer")
