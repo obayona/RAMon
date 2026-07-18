@@ -4,7 +4,7 @@ from typing import TypedDict
 
 class Product(TypedDict):
     """Product entity representing a hardware item in the catalog."""
-    
+
     id: int
     product_id: str
     sku: str
@@ -13,3 +13,6 @@ class Product(TypedDict):
     categories: str
     price: float
     stock: int
+    url: str
+    image_url: str
+    status: str

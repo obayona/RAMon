@@ -12,6 +12,9 @@ class Product(TypedDict):
     categories: str
     price: float
     stock: int
+    url: str
+    image_url: str
+    status: str
 
 
 class AgentState(TypedDict):
