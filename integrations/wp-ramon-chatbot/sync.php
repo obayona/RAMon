@@ -50,6 +50,7 @@ function ramon_chatbot_extract_product_data($product_id) {
         'categories'  => $categories,
         'price'       => (float) $product->get_price(),
         'stock'       => (int) $product->get_stock_quantity(),
+        'in_stock'    => $product->get_stock_status() === 'instock',
         'url'         => $permalink ?: '',
         'image_url'   => $image_url,
         'status'      => $product->get_status(),

@@ -12,6 +12,7 @@ class Product(TypedDict):
     categories: str
     price: float
     stock: int
+    in_stock: bool
     url: str
     image_url: str
     status: str

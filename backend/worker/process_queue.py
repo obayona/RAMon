@@ -111,8 +111,9 @@ def _upsert_product(conn, product_id: str, fields: Dict[str, Any]) -> None:
             cur.execute(
                 """
                 INSERT INTO products (product_id, sku, name, description, categories,
-                                      price, stock, url, image_url, status, embedding, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::vector, NOW())
+                                      price, stock, in_stock, url, image_url, status,
+                                      embedding, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::vector, NOW())
                 ON CONFLICT (product_id) DO UPDATE SET
                     sku = EXCLUDED.sku,
                     name = EXCLUDED.name,
@@ -120,6 +121,7 @@ def _upsert_product(conn, product_id: str, fields: Dict[str, Any]) -> None:
                     categories = EXCLUDED.categories,
                     price = EXCLUDED.price,
                     stock = EXCLUDED.stock,
+                    in_stock = EXCLUDED.in_stock,
                     url = EXCLUDED.url,
                     image_url = EXCLUDED.image_url,
                     status = EXCLUDED.status,
@@ -134,6 +136,7 @@ def _upsert_product(conn, product_id: str, fields: Dict[str, Any]) -> None:
                     fields.get("categories", ""),
                     fields.get("price", 0.0),
                     fields.get("stock", 0),
+                    fields.get("in_stock", True),
                     fields.get("url", ""),
                     fields.get("image_url", ""),
                     fields.get("status", "published"),
@@ -145,8 +148,9 @@ def _upsert_product(conn, product_id: str, fields: Dict[str, Any]) -> None:
             cur.execute(
                 """
                 INSERT INTO products (product_id, sku, name, description, categories,
-                                      price, stock, url, image_url, status, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                                      price, stock, in_stock, url, image_url, status,
+                                      updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
                 ON CONFLICT (product_id) DO UPDATE SET
                     sku = EXCLUDED.sku,
                     name = EXCLUDED.name,
@@ -154,6 +158,7 @@ def _upsert_product(conn, product_id: str, fields: Dict[str, Any]) -> None:
                     categories = EXCLUDED.categories,
                     price = EXCLUDED.price,
                     stock = EXCLUDED.stock,
+                    in_stock = EXCLUDED.in_stock,
                     url = EXCLUDED.url,
                     image_url = EXCLUDED.image_url,
                     status = EXCLUDED.status,
@@ -167,6 +172,7 @@ def _upsert_product(conn, product_id: str, fields: Dict[str, Any]) -> None:
                     fields.get("categories", ""),
                     fields.get("price", 0.0),
                     fields.get("stock", 0),
+                    fields.get("in_stock", True),
                     fields.get("url", ""),
                     fields.get("image_url", ""),
                     fields.get("status", "published"),

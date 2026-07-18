@@ -488,6 +488,7 @@ class RAMon_Initial_Sync {
             'categories'  => $categories,
             'price'       => (float) $product->get_price(),
             'stock'       => (int) $product->get_stock_quantity(),
+            'in_stock'    => $product->get_stock_status() === 'instock',
             'url'         => $permalink ?: '',
             'image_url'   => $image_url,
             'status'      => $product->get_status(),

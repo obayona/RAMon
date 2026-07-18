@@ -6,7 +6,7 @@ from psycopg_pool import AsyncConnectionPool
 from src.domain.models import Product
 
 _PRODUCT_COLUMNS = (
-    "id, product_id, sku, name, description, categories, price, stock, "
+    "id, product_id, sku, name, description, categories, price, stock, in_stock, "
     "url, image_url, status"
 )
 
@@ -49,6 +49,7 @@ class PostgresProductCatalog:
                 categories=row["categories"] or "",
                 price=row["price"],
                 stock=row["stock"],
+                in_stock=row["in_stock"] if row["in_stock"] is not None else True,
                 url=row["url"] or "",
                 image_url=row["image_url"] or "",
                 status=row["status"] or "published",
