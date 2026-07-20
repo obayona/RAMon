@@ -1,0 +1,14 @@
+parameters:
+    level: 6
+    paths:
+        - src/
+    excludePaths:
+        - vendor/
+    ignoreErrors:
+        - '#Function (get_option|update_option|delete_option|add_action|add_filter|register_setting|register_activation_hook|register_deactivation_hook|add_options_page|settings_fields|submit_button|esc_attr|esc_html|esc_url|wp_nonce_field|check_admin_referer|wp_json_encode|current_time|wp_remote_post|wp_remote_retrieve_response_code|wp_remote_retrieve_body|is_wp_error|get_post_type|get_permalink|wp_get_attachment_url|get_the_terms|get_sites|switch_to_blog|restore_current_blog|wp_next_scheduled|wp_schedule_event|wp_unschedule_event|esc_sql|wp_reset_postdata|set_transient|get_transient|delete_transient|__|wc_get_product|wc_get_products|is_multisite) not found.#'
+        - '#(Instantiated )?(class )?(WP_Query|WP_Post|WC_Product) not found.#'
+        - '#Access to property .+ on an unknown class (WP_Query|WP_Post|WC_Product).#'
+        - '#Call to method .+ on an unknown class WC_Product.#'
+        - '#Constant RAMON_CHATBOT_PLUGIN_FILE not found.#'
+        - '#Parameter \$product of method .+ has invalid type WC_Product.#'
+        - '#no value type specified in iterable type array#'
