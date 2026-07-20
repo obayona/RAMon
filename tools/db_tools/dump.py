@@ -63,9 +63,7 @@ def dump_pgvector_table(output):
             "columns": column_names,
             "data": rows
         }
-        print(payload['columns'])
-        print(payload["data"][0])
-        exit()
+
         # Write to a GZIP compressed Pickle (Binary) file
         print(f"Compressing and writing to {output}...")
         with gzip.open(output, 'wb') as f:

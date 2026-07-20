@@ -79,9 +79,12 @@ def import_products(csv_file: Path) -> None:
                 "sku": row.get("SKU", ""),
                 "name": row["Name"],
                 "description": row.get("Description", ""),
-                "stock": int(row["Stock"]),
+                "stock": int(row["Stock"]) if len(row["Stock"]) else 0,
                 "price": price,
-                "categories": row.get("Categories", "")
+                "categories": row.get("Categories", ""),
+                "image_url": (row.get("Images", ",").split())[0].strip(),
+                "status": "published",
+                "in_stok": True,
             }
             text_for_embedding = f"name: {product['name']}\ndescription: {product['description']}\ncategories: {product['categories']}"
             product['text_for_embedding'] = text_for_embedding
