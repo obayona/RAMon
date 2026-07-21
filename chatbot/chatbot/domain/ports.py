@@ -34,6 +34,7 @@ class ProductRepository(Protocol):
         embedding: List[float],
         min_price: Optional[float] = None,
         max_price: Optional[float] = None,
+        min_similarity: Optional[float] = None,
         limit: int = 3,
     ) -> List[Product]:
         """Search for products by embedding similarity with optional price filtering.
@@ -42,6 +43,7 @@ class ProductRepository(Protocol):
             embedding: The embedding vector to search against.
             min_price: Optional minimum price filter.
             max_price: Optional maximum price filter.
+            min_similarity: Optional minimum cosine similarity (0.0-1.0).
             limit: Maximum number of results to return.
             
         Returns:

@@ -16,6 +16,7 @@ class Product(TypedDict):
     url: str
     image_url: str
     status: str
+    similarity: Optional[float]
 
 
 class AgentState(TypedDict):

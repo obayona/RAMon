@@ -23,34 +23,49 @@ class PostgresProductRepository:
         embedding: List[float],
         min_price: Optional[float] = None,
         max_price: Optional[float] = None,
+        min_similarity: Optional[float] = None,
         limit: int = 3,
     ) -> List[Product]:
         """Search for products by embedding similarity with optional price filtering."""
-        # Build WHERE clause for price filtering
-        conditions: List[str] = []
-        params: List = []
+        # Build WHERE clause for price filtering (applied inside CTE)
+        price_conditions: List[str] = []
+        price_params: List = []
 
         if min_price is not None:
-            conditions.append("price >= %s")
-            params.append(min_price)
+            price_conditions.append("price >= %s")
+            price_params.append(min_price)
 
         if max_price is not None:
-            conditions.append("price <= %s")
-            params.append(max_price)
+            price_conditions.append("price <= %s")
+            price_params.append(max_price)
 
-        where_clause = ""
-        if conditions:
-            where_clause = "WHERE " + " AND ".join(conditions)
+        inner_where = ""
+        if price_conditions:
+            inner_where = "WHERE " + " AND ".join(price_conditions)
 
-        params.append(embedding)
+        # Similarity filter applied on outer query
+        outer_where = ""
+        if min_similarity is not None:
+            outer_where = "WHERE similarity >= %s"
+
+        # Param order: embedding, price filters, similarity, limit
+        params: List = [embedding]
+        params.extend(price_params)
+        if min_similarity is not None:
+            params.append(min_similarity)
         params.append(limit)
 
         sql = f"""
-            SELECT id, product_id, sku, name, description, categories, price,
-                   stock, in_stock, url, image_url, status
-            FROM products
-            {where_clause}
-            ORDER BY embedding <=> %s::vector
+            WITH scored AS (
+                SELECT id, product_id, sku, name, description, categories, price,
+                       stock, in_stock, url, image_url, status,
+                       1 - (embedding <=> %s::vector) AS similarity
+                FROM products
+                {inner_where}
+            )
+            SELECT * FROM scored
+            {outer_where}
+            ORDER BY similarity DESC
             LIMIT %s
         """
 
@@ -73,6 +88,7 @@ class PostgresProductRepository:
                 "url": row["url"] or "",
                 "image_url": row["image_url"] or "",
                 "status": row["status"] or "published",
+                "similarity": float(row["similarity"]),
             }
             for row in rows
         ]

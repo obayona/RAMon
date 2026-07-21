@@ -6,6 +6,8 @@ from langchain_core.tools import tool
 
 from chatbot.domain.ports import EmbeddingService, ProductRepository
 
+_SIMILARITY_THRESHOLD = 0.3
+
 
 def make_recommend_products(
     embedding_service: EmbeddingService,
@@ -23,16 +25,19 @@ def make_recommend_products(
 
         The query is embedded and searched against the product database using 
         cosine distance. ``min_price`` / ``max_price`` are applied as filters.
-        Returns the top 3 products as a JSON array.
+        Only returns products with a similarity score of 70% or higher.
+        Returns the top matching products as a JSON array, or a message if no
+        products meet the similarity threshold.
         """
         # Generate embedding for the query
         embedding = await embedding_service.embed(query)
 
-        # Search for similar products
+        # Search with similarity threshold applied at the database level
         products = await product_repository.search_by_similarity(
             embedding=embedding,
             min_price=min_price,
             max_price=max_price,
+            min_similarity=_SIMILARITY_THRESHOLD,
             limit=3,
         )
 
