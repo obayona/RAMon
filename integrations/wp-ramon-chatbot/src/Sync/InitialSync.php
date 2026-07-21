@@ -25,6 +25,7 @@ final class InitialSync
     private const CRON_HOOK = 'ramon_initial_sync_hook';
     private const OPT_PREFIX = 'ramon_initial_sync_';
     private const TABLE_DROP_TRANSIENT = 'ramon_drop_initial_sync_table';
+    private const NEEDS_SYNC_KEY = 'ramon_chatbot_needs_initial_sync';
 
     public function __construct(
         private readonly OptionStore $options,
@@ -53,15 +54,23 @@ final class InitialSync
     // ------------------------------------------------------------------
 
     /**
-     * Handle plugin activation — set a flag, no heavy work.
+     * Handle plugin activation — set a flag, schedule cron.
      */
     public function onActivate(bool $networkWide): void
     {
+        $this->log('Plugin activation started (networkWide=' . ($networkWide ? 'true' : 'false') . ')');
+
+        if (\defined('DISABLE_WP_CRON') && \DISABLE_WP_CRON) {
+            $this->log('WARNING: DISABLE_WP_CRON is true — WP-Cron is disabled. The admin fallback will handle sync.');
+        }
+
         if ($networkWide) {
             $this->sites->forEachSite(fn () => $this->flagActivation());
         } else {
             $this->flagActivation();
         }
+
+        $this->log('Plugin activation complete — cron scheduled. Note: WP-Cron fires on page loads. Visit any page to trigger sync.');
     }
 
     /**
@@ -69,6 +78,7 @@ final class InitialSync
      */
     public function onDeactivate(): void
     {
+        $this->log('Plugin deactivation — cleaning up');
         $this->unscheduleCron();
         $this->options->delete(self::OPT_PREFIX . 'locked');
     }
@@ -84,6 +94,7 @@ final class InitialSync
     {
         if (!$this->cron->isScheduled(self::CRON_HOOK)) {
             $this->cron->schedule(self::CRON_HOOK, $this->clock->now(), 'one_minute');
+            $this->log('Cron scheduled');
         }
     }
 
@@ -95,6 +106,7 @@ final class InitialSync
         $timestamp = $this->cron->getNextTimestamp(self::CRON_HOOK);
         if ($timestamp !== false) {
             $this->cron->unschedule($timestamp, self::CRON_HOOK);
+            $this->log('Cron unscheduled');
         }
     }
 
@@ -103,25 +115,35 @@ final class InitialSync
      */
     public function processCron(): void
     {
-        if ($this->opt('status') !== 'running') {
+        $status = $this->opt('status');
+        $this->log("processCron triggered — status={$status}");
+
+        if ($status !== 'running') {
+            $this->log('processCron: status is not running, skipping');
             return;
         }
 
         if ($this->options->get(self::OPT_PREFIX . 'locked', false)) {
+            $this->log('processCron: locked by another process, skipping');
             return;
         }
         $this->options->set(self::OPT_PREFIX . 'locked', true);
 
         try {
             if (!$this->repo->tableExists()) {
+                $this->log('processCron: creating and populating sync table');
                 $this->createAndPopulateTable();
             }
 
             $result = $this->processBatch();
+            $this->log("processCron: batch done — processed={$result['processed']}, errors={$result['errors']}, pending={$result['pending']}");
 
             if ($result['pending'] === 0) {
-                $this->finalize();
+                $this->finalize($result['errors'] > 0);
             }
+        } catch (\Throwable $e) {
+            $this->log('processCron: exception — ' . $e->getMessage());
+            throw $e;
         } finally {
             $this->options->delete(self::OPT_PREFIX . 'locked');
         }
@@ -146,10 +168,14 @@ final class InitialSync
         $this->setOpt('errors', 0);
         $this->setOpt('time', $this->clock->mysql());
 
+        $this->log("createAndPopulateTable: total={$total}, pages={$pages}");
+
         for ($p = 1; $p <= $pages; $p++) {
             $ids = $this->productQuery->fetchProductIds($p, 100);
             $this->repo->insertProductIds($ids);
         }
+
+        $this->log('createAndPopulateTable: table populated');
     }
 
     // ------------------------------------------------------------------
@@ -169,6 +195,8 @@ final class InitialSync
             return ['pending' => 0, 'processed' => 0, 'errors' => 0];
         }
 
+        $this->log('processBatch: processing ' . \count($productIds) . ' products — IDs: ' . implode(', ', $productIds));
+
         $changes = [];
         foreach ($productIds as $pid) {
             $data = $this->extractor->extract($pid);
@@ -185,15 +213,20 @@ final class InitialSync
         $errors = 0;
 
         if (!empty($changes)) {
+            $this->log('processBatch: sending ' . \count($changes) . ' changes to backend');
             $result = $this->sync->send($changes);
 
             if (!$result['success']) {
-                $this->repo->markStatus($productIds, 'error', $result['error'] ?? 'Unknown error');
+                $error = $result['error'] ?? 'Unknown error';
+                $this->log('processBatch: backend error — ' . $error);
+                $this->repo->markStatus($productIds, 'error', $error);
                 $errors = \count($productIds);
             } else {
                 $this->repo->markStatus($productIds, 'done');
                 $processed = \count($productIds);
             }
+        } else {
+            $this->log('processBatch: no extractable products in batch');
         }
 
         $pending = $this->repo->countPending();
@@ -217,14 +250,24 @@ final class InitialSync
     // ------------------------------------------------------------------
 
     /**
-     * Mark sync as complete, unschedule cron, schedule table drop.
+     * Mark sync as complete, unschedule cron, optionally schedule table drop.
+     *
+     * The table is only dropped when there are no errors, so retry can use it.
      */
-    private function finalize(): void
+    private function finalize(bool $hasErrors = false): void
     {
+        $done = (int) $this->opt('done', '0');
+        $errors = (int) $this->opt('errors', '0');
+        $this->log("finalize: sync complete — done={$done}, errors={$errors}");
+
         $this->setOpt('status', 'complete');
         $this->setOpt('time', $this->clock->mysql());
+        $this->options->delete(self::NEEDS_SYNC_KEY);
         $this->unscheduleCron();
-        $this->transients->set(self::TABLE_DROP_TRANSIENT, true, 60);
+
+        if (!$hasErrors) {
+            $this->transients->set(self::TABLE_DROP_TRANSIENT, true, 60);
+        }
     }
 
     /**
@@ -235,6 +278,7 @@ final class InitialSync
         if ($this->transients->get(self::TABLE_DROP_TRANSIENT)) {
             $this->transients->delete(self::TABLE_DROP_TRANSIENT);
             if ($this->repo->tableExists()) {
+                $this->log('maybeDropTable: dropping sync table');
                 $this->repo->dropTable();
             }
         }
@@ -245,15 +289,19 @@ final class InitialSync
     // ------------------------------------------------------------------
 
     /**
-     * Reset all error rows back to pending.
+     * Drop the sync table and restart from scratch.
      *
-     * @return int Number of rows reset.
+     * The table will be recreated and repopulated on the next processCron run.
+     *
+     * @return int Number of error rows that existed before restart.
      */
     public function retryFailed(): int
     {
         $count = $this->repo->retryFailed();
 
         if ($count) {
+            $this->log("retryFailed: restarting sync from scratch ({$count} errors)");
+            $this->repo->dropTable();
             $this->setOpt('errors', 0);
             $this->setOpt('time', $this->clock->mysql());
             $this->setOpt('status', 'running');
@@ -261,6 +309,26 @@ final class InitialSync
         }
 
         return $count;
+    }
+
+    // ------------------------------------------------------------------
+    // Admin fallback (WP-Cron backup)
+    // ------------------------------------------------------------------
+
+    /**
+     * Trigger a sync batch on admin page loads when status is running.
+     *
+     * This is a fallback for environments where WP-Cron is disabled or
+     * unreliable. Hooked to admin_init alongside the cron hook.
+     */
+    public function maybeProcessSync(): void
+    {
+        if ($this->opt('status') !== 'running') {
+            return;
+        }
+
+        $this->log('admin_init fallback: sync is running, triggering batch');
+        $this->processCron();
     }
 
     // ------------------------------------------------------------------
@@ -278,7 +346,7 @@ final class InitialSync
             done: (int) $this->opt('done', '0'),
             errors: (int) $this->opt('errors', '0'),
             time: $this->opt('time', ''),
-            needsSync: (bool) $this->options->get('ramon_chatbot_needs_initial_sync', false),
+            needsSync: (bool) $this->options->get(self::NEEDS_SYNC_KEY, false),
         );
     }
 
@@ -293,6 +361,8 @@ final class InitialSync
         $this->setOpt('done', 0);
         $this->setOpt('errors', 0);
         $this->setOpt('time', $this->clock->mysql());
+        $this->options->set(self::NEEDS_SYNC_KEY, true);
+        $this->scheduleCron();
     }
 
     private function opt(string $key, string $default = ''): string
@@ -303,5 +373,13 @@ final class InitialSync
     private function setOpt(string $key, mixed $value): void
     {
         $this->options->set(self::OPT_PREFIX . $key, $value);
+    }
+
+    /**
+     * Log a message to the PHP error log.
+     */
+    private function log(string $message): void
+    {
+        \error_log("[RAMon InitialSync] {$message}");
     }
 }

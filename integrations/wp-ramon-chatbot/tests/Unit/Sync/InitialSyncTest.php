@@ -187,6 +187,7 @@ final class InitialSyncTest extends TestCase
             'ramon_initial_sync_status' => 'running',
             'ramon_api_url' => 'https://api.example.com',
             'ramon_app_key' => 'test-secret',
+            'ramon_chatbot_needs_initial_sync' => true,
         ]);
         $this->productQuery->setProducts([10]);
 
@@ -198,8 +199,29 @@ final class InitialSyncTest extends TestCase
         $this->sync->processCron();
 
         $this->assertSame('complete', $this->options->get('ramon_initial_sync_status', ''));
+        $this->assertFalse((bool) $this->options->get('ramon_chatbot_needs_initial_sync', false));
         $this->assertTrue($this->transients->has('ramon_drop_initial_sync_table'));
         $this->assertFalse($this->cron->isScheduled(InitialSync::cronHook()));
+    }
+
+    public function testProcessCronKeepsTableWhenErrorsExist(): void
+    {
+        $this->options->load([
+            'ramon_initial_sync_status' => 'running',
+            'ramon_api_url' => 'https://api.example.com',
+            'ramon_app_key' => 'test-secret',
+        ]);
+        $this->productQuery->setProducts([10]);
+
+        $data = new ProductData(productId: '10', sku: 'SKU-10', name: 'A', description: 'd', categories: '', price: 1.00, stock: 0, inStock: true, url: '', imageUrl: '', status: 'publish');
+        $this->extractor->setProducts([10 => $data]);
+        $this->http->setResponse(500, 'Internal Server Error');
+
+        $this->sync->processCron();
+
+        $this->assertSame('complete', $this->options->get('ramon_initial_sync_status', ''));
+        $this->assertFalse($this->transients->has('ramon_drop_initial_sync_table'), 'Table drop should not be scheduled when errors exist');
+        $this->assertSame(1, $this->options->get('ramon_initial_sync_errors', 0));
     }
 
     public function testProcessCronUnlocksAfterProcessing(): void
@@ -216,11 +238,13 @@ final class InitialSyncTest extends TestCase
     // onActivate
     // ------------------------------------------------------------------
 
-    public function testOnActivateSingleSiteSetsRunningStatus(): void
+    public function testOnActivateSingleSiteSetsRunningStatusAndSchedulesCron(): void
     {
         $this->sync->onActivate(false);
 
         $this->assertSame('running', $this->options->get('ramon_initial_sync_status', ''));
+        $this->assertTrue((bool) $this->options->get('ramon_chatbot_needs_initial_sync', false));
+        $this->assertTrue($this->cron->isScheduled(InitialSync::cronHook()));
         $this->assertSame(0, $this->sites->getInvocationCount());
     }
 
@@ -232,6 +256,7 @@ final class InitialSyncTest extends TestCase
 
         $this->assertSame(3, $this->sites->getInvocationCount());
         $this->assertSame('running', $this->options->get('ramon_initial_sync_status', ''));
+        $this->assertTrue($this->cron->isScheduled(InitialSync::cronHook()));
     }
 
     // ------------------------------------------------------------------
@@ -247,6 +272,31 @@ final class InitialSyncTest extends TestCase
 
         $this->assertFalse($this->cron->isScheduled(InitialSync::cronHook()));
         $this->assertFalse($this->options->has('ramon_initial_sync_locked'));
+    }
+
+    // ------------------------------------------------------------------
+    // maybeProcessSync (admin fallback)
+    // ------------------------------------------------------------------
+
+    public function testMaybeProcessSyncSkipsWhenStatusNotRunning(): void
+    {
+        $this->options->load(['ramon_initial_sync_status' => 'idle']);
+
+        $this->sync->maybeProcessSync();
+
+        $this->assertFalse($this->repo->tableExists());
+        $this->assertSame(0, $this->http->getRequestCount());
+    }
+
+    public function testMaybeProcessSyncTriggersWhenRunning(): void
+    {
+        $this->options->load(['ramon_initial_sync_status' => 'running']);
+        $this->productQuery->setProducts([]);
+
+        $this->sync->maybeProcessSync();
+
+        // Table should be created (processCron ran)
+        $this->assertTrue($this->repo->tableExists());
     }
 
     // ------------------------------------------------------------------
@@ -337,6 +387,7 @@ final class InitialSyncTest extends TestCase
         $this->assertSame(0, $this->options->get('ramon_initial_sync_errors', ''));
         $this->assertSame('running', $this->options->get('ramon_initial_sync_status', ''));
         $this->assertTrue($this->cron->isScheduled(InitialSync::cronHook()));
+        $this->assertFalse($this->repo->tableExists(), 'Table should be dropped on retry');
     }
 
     // ------------------------------------------------------------------

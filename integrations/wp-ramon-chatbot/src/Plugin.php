@@ -94,6 +94,7 @@ final class Plugin
     {
         \add_action(InitialSync::cronHook(), [$this->initialSync, 'processCron']);
         \add_action('admin_init', [$this->initialSync, 'maybeDropTable']);
+        \add_action('admin_init', [$this->initialSync, 'maybeProcessSync']);
 
         \add_filter('cron_schedules', static function (array $schedules): array {
             $schedules['one_minute'] = [

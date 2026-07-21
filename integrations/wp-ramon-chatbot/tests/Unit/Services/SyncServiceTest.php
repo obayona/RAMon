@@ -91,10 +91,50 @@ final class SyncServiceTest extends TestCase
         $this->assertStringContainsString('500', $result['error']);
     }
 
+    public function testSendConnectionFailureShowsFriendlyMessage(): void
+    {
+        $this->options->load([
+            'ramon_api_url' => 'https://api.example.com/api',
+            'ramon_app_key' => 'test-key',
+        ]);
+        $this->http->setResponse(0, '[http_error] cURL error 7: Failed to connect to api.example.com port 8000');
+
+        $result = $this->sync->send([[
+            'action' => 'upsert',
+            'product_id' => '42',
+            'fields' => [],
+        ]]);
+
+        $this->assertFalse($result['success']);
+        $this->assertStringContainsString('Connection failed', $result['error']);
+        $this->assertStringContainsString('could not reach the backend', $result['error']);
+        $this->assertStringContainsString('https://api.example.com/api/sync/products', $result['error']);
+        $this->assertStringNotContainsString('HTTP 0', $result['error']);
+    }
+
+    public function testSendTimeoutShowsFriendlyMessage(): void
+    {
+        $this->options->load([
+            'ramon_api_url' => 'https://api.example.com/api',
+            'ramon_app_key' => 'test-key',
+        ]);
+        $this->http->setResponse(0, '[timeout] cURL error 28: Operation timed out');
+
+        $result = $this->sync->send([[
+            'action' => 'upsert',
+            'product_id' => '42',
+            'fields' => [],
+        ]]);
+
+        $this->assertFalse($result['success']);
+        $this->assertStringContainsString('Connection failed', $result['error']);
+        $this->assertStringContainsString('[timeout]', $result['error']);
+    }
+
     public function testSendCorrectEndpoint(): void
     {
         $this->options->load([
-            'ramon_api_url' => 'https://api.example.com',
+            'ramon_api_url' => 'https://api.example.com/api',
             'ramon_app_key' => 'test-key',
         ]);
         $this->http->setResponse(200, '{}');
@@ -131,7 +171,7 @@ final class SyncServiceTest extends TestCase
     public function testSendStripsTrailingSlash(): void
     {
         $this->options->load([
-            'ramon_api_url' => 'https://api.example.com/',
+            'ramon_api_url' => 'https://api.example.com/api/',
             'ramon_app_key' => 'test-key',
         ]);
         $this->http->setResponse(200, '{}');

@@ -22,9 +22,11 @@ final class WpHttpClient implements HttpClient
         ]);
 
         if (\is_wp_error($response)) {
+            $code = (string) $response->get_error_code();
+            $message = $response->get_error_message();
             return [
                 'code' => 0,
-                'body' => $response->get_error_message(),
+                'body' => "[{$code}] {$message}",
             ];
         }
 

@@ -36,7 +36,7 @@ final class SyncService
             return ['success' => false, 'error' => 'API URL or token not configured'];
         }
 
-        $endpoint = "{$apiUrl}/api/sync/products";
+        $endpoint = "{$apiUrl}/sync/products";
         $body = (string) \json_encode(['changes' => $changes], \JSON_THROW_ON_ERROR);
 
         $response = $this->http->post(
@@ -52,6 +52,13 @@ final class SyncService
         if ($response['code'] >= 200 && $response['code'] < 300) {
             $data = \json_decode($response['body'], true);
             return ['success' => true, 'data' => $data ?? []];
+        }
+
+        if ($response['code'] === 0) {
+            return [
+                'success' => false,
+                'error' => "Connection failed — could not reach the backend at {$endpoint} ({$response['body']}). Check that the backend is running and the API URL is correct.",
+            ];
         }
 
         return [

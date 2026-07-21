@@ -31,7 +31,7 @@ final class WpProductExtractor implements ProductExtractor
         $categories = '';
         if ($terms && !\is_wp_error($terms)) {
             $categories = \implode(',', \array_map(
-                static fn(\stdClass $t): string => $t->name,
+                static fn(\WP_Term $t): string => $t->name,
                 $terms,
             ));
         }

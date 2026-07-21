@@ -66,7 +66,7 @@ final class WpInitialSyncRepository implements InitialSyncRepository
     public function fetchPendingBatch(int $limit): array
     {
         global $wpdb;
-        return (array) $wpdb->get_col(
+        $rows = (array) $wpdb->get_col(
             $wpdb->prepare(
                 "SELECT product_id FROM {$this->table}
                  WHERE status = 'pending'
@@ -75,6 +75,7 @@ final class WpInitialSyncRepository implements InitialSyncRepository
                 $limit,
             ),
         );
+        return \array_map('intval', $rows);
     }
 
     public function countPending(): int
