@@ -4,7 +4,6 @@
 Runs via system crontab every minute. Reads DATABASE_URL from environment.
 Processes one batch per invocation and exits.
 """
-import json
 import logging
 import os
 import sys
@@ -189,7 +188,7 @@ def _delete_product(conn, product_id: str) -> None:
         )
 
 
-def _process_pending_batch(batch_size: int = 10) -> dict:
+def _process_pending_batch(batch_size: int = 50) -> dict:
     """Process a batch of pending sync_queue items.
 
     Returns:
