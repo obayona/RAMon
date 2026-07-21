@@ -1,8 +1,9 @@
 """WebSocket route for real-time chat."""
-import json
-import logging
-from dataclasses import dataclass
+from __future__ import annotations
 
+import json
+
+import structlog
 from fastapi import APIRouter, Depends, WebSocket, WebSocketException
 from starlette import status
 from starlette.websockets import WebSocketDisconnect
@@ -13,18 +14,20 @@ from src.api.middleware import validate_websocket_token
 from src.domain.ports import ProductCatalog
 
 router = APIRouter(tags=["websocket"])
-logger = logging.getLogger("ramon.websocket")
+logger = structlog.get_logger("ramon.websocket")
 
 
-@dataclass
 class ChatMessage:
     """Parsed chat message from WebSocket payload."""
 
-    message: str
-    current_product_id: str | None
+    __slots__ = ("message", "current_product_id")
+
+    def __init__(self, message: str, current_product_id: str | None) -> None:
+        self.message = message
+        self.current_product_id = current_product_id
 
     @classmethod
-    def from_raw(cls, raw: str) -> "ChatMessage":
+    def from_raw(cls, raw: str) -> ChatMessage:
         """Parse a raw WebSocket message into a ChatMessage."""
         try:
             payload = json.loads(raw)
@@ -76,14 +79,23 @@ async def websocket_endpoint(
     chat_id = _validate_chat_id(ws)
 
     await ws.accept()
+    structlog.contextvars.bind_contextvars(chat_id=chat_id)
+    logger.info("ws.connected")
     try:
         while True:
             raw = await ws.receive_text()
             chat_message = ChatMessage.from_raw(raw)
 
             if not chat_message.message:
+                logger.debug("ws.message.empty")
                 await ws.send_json({"type": "error", "content": "empty message"})
                 continue
+
+            logger.debug(
+                "ws.message.received",
+                length=len(chat_message.message),
+                has_product=bool(chat_message.current_product_id),
+            )
 
             # Fetch product metadata if product ID is provided
             current_product = None
@@ -94,8 +106,8 @@ async def websocket_endpoint(
                     )
                 except Exception:
                     logger.exception(
-                        "Failed to fetch product metadata for id %s",
-                        chat_message.current_product_id,
+                        "ws.product_lookup.failed",
+                        product_id=chat_message.current_product_id,
                     )
 
             # Stream chatbot responses
@@ -107,10 +119,12 @@ async def websocket_endpoint(
                 await ws.send_json(snapshot)
 
     except WebSocketDisconnect:
-        pass
+        logger.info("ws.disconnected")
     except Exception as exc:
-        logger.exception("WebSocket error")
+        logger.exception("ws.error", error=str(exc))
         try:
             await ws.send_json({"error": str(exc)})
         except Exception:
             pass
+    finally:
+        structlog.contextvars.unbind_contextvars("chat_id")

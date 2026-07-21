@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
+import structlog
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_openai import ChatOpenAI
 from langchain_tavily import TavilySearch
@@ -14,6 +15,8 @@ from chatbot.application.graph import build_graph
 from chatbot.application.parser import ProductMarkerParser
 from chatbot.domain import ChatbotState, Product, EmbeddingService, ProductRepository
 from chatbot.tools import build_tools
+
+logger = structlog.get_logger("ramon.chatbot.service")
 
 
 class ChatNotFoundError(Exception):
@@ -72,6 +75,7 @@ class ChatbotService:
         chat_id: str = "default",
     ) -> ChatbotState:
         """Run the full graph to completion and return the final state (async)."""
+        logger.debug("ainvoke.start", chat_id=chat_id, message_length=len(message))
         state: ChatbotState = {
             "messages": [HumanMessage(content=message)],
             "current_product": current_product,
@@ -79,7 +83,9 @@ class ChatbotService:
             "product_query": None,
         }
 
-        return await self._app.ainvoke(state, {"configurable": {"thread_id": chat_id}})
+        result = await self._app.ainvoke(state, {"configurable": {"thread_id": chat_id}})
+        logger.debug("ainvoke.complete", chat_id=chat_id)
+        return result
 
     async def stream(
         self,
@@ -98,6 +104,7 @@ class ChatbotService:
             - type="text": {"id", "type", "content"}
             - type="ui_data": {"id", "type", "layout", "products"}
         """
+        logger.debug("stream.start", chat_id=chat_id, message_length=len(message))
         state: ChatbotState = {
             "messages": [HumanMessage(content=message)],
             "current_product": current_product,
@@ -154,6 +161,7 @@ class ChatbotService:
         }
 
     async def get_chat_history(self, chat_id: str) -> List[Dict[str, Any]]:
+        logger.debug("get_chat_history.start", chat_id=chat_id)
         config = {"configurable": {"thread_id": chat_id}}
         state = await self._app.aget_state(config)
 

@@ -3,10 +3,13 @@ from __future__ import annotations
 
 from typing import Literal, Optional
 
+import structlog
 from langchain_core.tools import tool
 from langgraph.types import Command
 
 from chatbot.domain.ports import EmbeddingService, ProductRepository
+
+logger = structlog.get_logger("ramon.chatbot.tools")
 
 _SIMILARITY_THRESHOLD = 0.3
 
@@ -29,6 +32,12 @@ def make_recommend_products(
         cosine distance. ``min_price`` / ``max_price`` are applied as filters.
         Only returns products with a similarity score of 70% or higher.
         """
+        logger.debug(
+            "recommend_products.search",
+            query=query,
+            min_price=min_price,
+            max_price=max_price,
+        )
         # Generate embedding for the query
         embedding = await embedding_service.embed(query)
 
@@ -40,6 +49,8 @@ def make_recommend_products(
             min_similarity=_SIMILARITY_THRESHOLD,
             limit=3,
         )
+
+        logger.debug("recommend_products.results", count=len(products))
 
         # Return Command to update state and route to process_recommendations
         # No ToolMessage needed - the final response from process_recommendations

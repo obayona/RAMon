@@ -12,7 +12,7 @@ from __future__ import annotations
 from fastapi import Request, WebSocket
 
 from chatbot import ChatbotService
-from src.core.config import AuthConfig
+from src.core.config.auth import AuthConfig
 from src.domain.ports import ProductCatalog
 from src.domain.sync import SyncEnqueuer
 

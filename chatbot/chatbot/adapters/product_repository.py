@@ -1,10 +1,13 @@
 """PostgreSQL product repository implementation using pgvector."""
 from typing import List, Optional
 
+import structlog
 from psycopg_pool import AsyncConnectionPool
 
 from chatbot.domain.ports import ProductRepository
 from chatbot.domain.product import Product
+
+logger = structlog.get_logger("ramon.chatbot.adapters")
 
 
 class PostgresProductRepository:
@@ -92,6 +95,12 @@ class PostgresProductRepository:
             }
             for row in rows
         ]
+
+        logger.debug(
+            "product_search.completed",
+            result_count=len(products),
+            has_price_filter=min_price is not None or max_price is not None,
+        )
 
         return products
 

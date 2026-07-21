@@ -4,7 +4,8 @@
 Runs via system crontab every minute. Reads DATABASE_URL from environment.
 Processes one batch per invocation and exits.
 """
-import logging
+from __future__ import annotations
+
 import os
 import sys
 from pathlib import Path
@@ -18,17 +19,25 @@ if str(_project_root) not in sys.path:
 
 load_dotenv(_project_root / ".env")
 
+# Configure logging before any other imports that might emit log records
+from src.core.config import load_settings
+from src.core.logging import configure_logging
+
+settings = load_settings()
+configure_logging(
+    level=settings.logging.level,
+    fmt=settings.logging.fmt,
+    log_dir=settings.logging.log_dir,
+)
+
+import structlog
+
 import psycopg
 from openai import OpenAI
 from pgvector.psycopg import register_vector
 from psycopg.rows import dict_row
 
-logger = logging.getLogger("ramon.sync.worker")
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-)
+logger = structlog.get_logger("ramon.sync.worker")
 
 BATCH_SIZE = int(os.environ.get("SYNC_BATCH_SIZE", "10"))
 
@@ -55,7 +64,7 @@ def _compute_embedding(fields: Dict[str, Any]) -> Any:
     try:
         api_key = os.environ.get("OPENAI_API_KEY", "")
         if not api_key:
-            logger.warning("OPENAI_API_KEY not set, skipping embedding")
+            logger.warning("worker.openai_key_missing")
             return None
 
         text = _embedding_text(
@@ -73,7 +82,7 @@ def _compute_embedding(fields: Dict[str, Any]) -> Any:
         )
         return response.data[0].embedding
     except Exception as exc:
-        logger.exception("Failed to compute embedding: %s", exc)
+        logger.exception("worker.embedding.failed", error=str(exc))
         return None
 
 
@@ -250,7 +259,12 @@ def _process_pending_batch(batch_size: int = 50) -> dict:
                     )
             except Exception as exc:
                 msg = f"Product {product_id}: {exc}"
-                logger.exception(msg)
+                logger.exception(
+                    "worker.item.failed",
+                    product_id=product_id,
+                    action=action,
+                    error=str(exc),
+                )
                 errors.append(msg)
                 with conn.cursor() as cur:
                     cur.execute(
@@ -261,8 +275,11 @@ def _process_pending_batch(batch_size: int = 50) -> dict:
         conn.commit()
 
     logger.info(
-        "Worker batch: processed=%d, upserted=%d, deleted=%d, errors=%d",
-        len(rows), upserted, deleted, len(errors),
+        "worker.batch.completed",
+        total=len(rows),
+        upserted=upserted,
+        deleted=deleted,
+        error_count=len(errors),
     )
     return {
         "processed": len(rows),
@@ -278,15 +295,16 @@ def main() -> None:
 
     if result["errors"]:
         logger.warning(
-            "Batch completed with errors: %s", "; ".join(result["errors"])
+            "worker.batch.errors",
+            errors=result["errors"],
         )
 
     if result["processed"] > 0:
         logger.info(
-            "Processed %d items (upserted=%d, deleted=%d)",
-            result["processed"],
-            result["upserted"],
-            result["deleted"],
+            "worker.batch.summary",
+            processed=result["processed"],
+            upserted=result["upserted"],
+            deleted=result["deleted"],
         )
 
 

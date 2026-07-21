@@ -190,3 +190,72 @@ If a plain string is sent, the server treats it as the `message` with no current
 **Response format:**
 Responses are streamed JSON snapshots containing assistant tokens and any structured
 `ui_payload` entries for product carousels.
+
+## Logging
+
+RAMon uses [structlog](https://www.structlog.org/) for structured, contextual logging.
+
+### Environment variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `LOG_LEVEL` | `INFO` | Minimum log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`) |
+| `LOG_FORMAT` | `text` | Output format: `text` (human-readable) or `json` (structured) |
+| `LOG_DIR` | `""` (stdout) | Directory for log files. Empty = stdout only (dev mode) |
+
+### Development (stdout)
+
+Logs go to stdout in human-readable text format. View them with:
+
+```bash
+docker compose logs -f backend
+```
+
+### Production (files + logrotate)
+
+Set `LOG_FORMAT=json` and `LOG_DIR=/var/log/ramon`. Logs are written to:
+
+- `/var/log/ramon/api.log` — API server, WebSocket, sync, and chatbot logs
+- `/var/log/ramon/worker.log` — Background sync worker
+
+Rotation is handled by logrotate (daily, 14 days retention, compressed).
+
+### Log channels
+
+| Logger | Purpose |
+|---|---|
+| `ramon.server` | App lifecycle (startup, shutdown, config) |
+| `ramon.api` | HTTP request/response middleware |
+| `ramon.websocket` | WebSocket connect/disconnect/errors (correlated by `chat_id`) |
+| `ramon.sync` | Sync enqueuer |
+| `ramon.chatbot.*` | Chatbot library (service, graph, tools, adapters) |
+| `ramon.sync.worker` | Background sync worker |
+
+### Request tracing
+
+Every HTTP request gets a UUID4 `request_id` (returned as `X-Request-ID` header).
+WebSocket connections are traced by `chat_id`. Both are included in all log records
+via structlog's context variables.
+
+### Integrating Sentry
+
+The logging pipeline is designed for easy extensibility. To add Sentry:
+
+1. Install: `pip install sentry-sdk[fastapi]`
+2. In `src/core/logging.py`, add a `SentryHandler` to the stdlib logging config:
+
+```python
+import sentry_sdk
+from sentry_sdk.integrations.logging import LoggingIntegration
+
+sentry_logging = LoggingIntegration(
+    level=logging.ERROR,        # Send errors to Sentry
+    event_level=logging.ERROR,  # Only create Sentry events for ERROR+
+)
+sentry_sdk.init(dsn="...", integrations=[sentry_logging])
+```
+
+Or add a structlog processor for more control over what gets sent.
+
+No changes needed to individual logger call sites — the processor/handler chain
+is the extension point.

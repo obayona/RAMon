@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 import jwt
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 
-from src.core.config import AuthConfig
+from src.core.config.auth import AuthConfig
 
 
 class JWTValidationError(Exception):

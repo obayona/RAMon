@@ -3,7 +3,9 @@
 This module defines the FastAPI application with clean architecture,
 wiring together all layers: core, domain, adapters, API, and infrastructure.
 """
-import logging
+from __future__ import annotations
+
+import structlog
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
@@ -16,11 +18,11 @@ from chatbot.adapters import PostgresProductRepository
 
 from src.adapters import PostgresProductCatalog
 from src.adapters.sync_queue import PostgresSyncEnqueuer
+from src.api.middleware import RequestIDMiddleware
 from src.api.routes import chat_router, root_router, sync_router, websocket_router
-from src.core.config import AppConfig, AuthConfig, ConfigError
+from src.core.config import ConfigError, config, load_settings
+from src.core.logging import configure_logging
 from src.infrastructure.database import create_db_pool
-
-logger = logging.getLogger("ramon.server")
 
 load_dotenv()
 
@@ -28,38 +30,55 @@ load_dotenv()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager for initializing and cleaning up resources."""
-    # Load configuration
+    # Load all settings first
     try:
-        app_config = AppConfig.from_env()
-        auth_config = AuthConfig.from_env()
+        settings = load_settings()
     except ConfigError as exc:
-        logger.critical("Failed to load configuration: %s", exc)
+        # Logging not configured yet — use structlog default
+        log = structlog.get_logger("ramon.server")
+        log.critical("config.load.failed", error=str(exc))
         raise
 
+    # Configure logging from settings
+    configure_logging(
+        level=config("logging.level"),
+        fmt=config("logging.fmt"),
+        log_dir=config("logging.log_dir"),
+    )
+    log = structlog.get_logger("ramon.server")
+    log.info(
+        "config.loaded",
+        openai_model=config("app.openai_model"),
+        openai_temperature=config("app.openai_temperature"),
+    )
+
     # Initialize database pool
-    db_pool = create_db_pool(app_config.database_url)
+    db_pool = create_db_pool(config("app.database_url"))
     await db_pool.open()
+    log.info("database.connected")
 
     # Build services
     app.state.chatbot_service = (
         ChatbotBuilder()
         .with_openai(
-            api_key=app_config.openai_api_key,
-            model=app_config.openai_model,
-            temperature=app_config.openai_temperature,
+            api_key=config("app.openai_api_key"),
+            model=config("app.openai_model"),
+            temperature=config("app.openai_temperature"),
         )
-        .with_tavily(api_key=app_config.tavily_api_key)
+        .with_tavily(api_key=config("app.tavily_api_key"))
         .with_checkpointer(AsyncShallowPostgresSaver(db_pool))
         .with_product_repository(PostgresProductRepository(db_pool))
         .build()
     )
     app.state.product_catalog = PostgresProductCatalog(db_pool)
     app.state.sync_enqueuer = PostgresSyncEnqueuer(db_pool)
-    app.state.auth_config = auth_config
+    app.state.auth_config = config("auth")
+    log.info("services.built")
 
     yield
 
     # Cleanup
+    log.info("shutdown")
     await db_pool.close()
 
 
@@ -71,6 +90,9 @@ def create_app() -> FastAPI:
         version="1.0.0",
         lifespan=lifespan,
     )
+
+    # Request ID middleware — must be added before routes
+    app.add_middleware(RequestIDMiddleware)
 
     # Register routers
     app.include_router(root_router)
@@ -89,7 +111,7 @@ def create_app() -> FastAPI:
         expose_headers=["*"],
         max_age=600,
     )
-    
+
     return app
 
 

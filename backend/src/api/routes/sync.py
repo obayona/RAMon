@@ -5,9 +5,9 @@ A background worker processes the queue independently.
 """
 from __future__ import annotations
 
-import logging
 from typing import List, Optional
 
+import structlog
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
@@ -16,7 +16,7 @@ from src.api.middleware import require_jwt
 from src.domain.sync import SyncEnqueuer
 
 router = APIRouter(prefix="/sync", tags=["sync"])
-logger = logging.getLogger("ramon.sync")
+logger = structlog.get_logger("ramon.sync")
 
 
 class ProductChange(BaseModel):
@@ -68,4 +68,5 @@ async def sync_products(
     ]
 
     count = await enqueuer.enqueue(changes_data)
+    logger.info("sync.request.completed", count=count)
     return SyncResponse(queued=count)

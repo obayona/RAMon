@@ -1,3 +1,3 @@
 # RAMon sync worker crontab
 # Processes pending product sync items every minute
-* * * * * /usr/local/bin/python /app/backend/worker/process_queue.py >> /var/log/sync-worker.log 2>&1
+* * * * * /usr/local/bin/python /app/backend/worker/process_queue.py >> /var/log/ramon/worker.log 2>&1

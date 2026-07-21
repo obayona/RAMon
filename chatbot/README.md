@@ -189,3 +189,35 @@ from chatbot import generate_graph_image
 
 png_bytes = generate_graph_image(chatbot)
 ```
+
+## Logging
+
+The chatbot library uses [structlog](https://www.structlog.org/) with standard
+Python `logging` — but **never configures handlers itself**. This follows the
+standard Python library convention: libraries emit log records, host applications
+configure where they go.
+
+### Loggers
+
+| Logger | Used in |
+|---|---|
+| `ramon.chatbot.service` | `ChatbotService.ainvoke()`, `stream()`, `get_chat_history()` |
+| `ramon.chatbot.graph` | LangGraph node transitions (`_should_continue`) |
+| `ramon.chatbot.tools` | `recommend_products`, `search_component_spec` |
+| `ramon.chatbot.adapters` | `PostgresProductRepository` query results |
+
+All library logs are at **DEBUG** level — silent unless the host sets `LOG_LEVEL=DEBUG`.
+
+### Enabling logging
+
+The host application (e.g., `backend`) calls `configure_logging()` at startup.
+Once configured, chatbot library logs flow through automatically:
+
+```python
+from src.core.logging import configure_logging
+
+configure_logging(level="DEBUG", fmt="text")  # or fmt="json"
+```
+
+No per-module configuration needed — structlog's `get_logger()` returns a
+logger that delegates to stdlib `logging`, which is already configured.

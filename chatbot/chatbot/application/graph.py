@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, List, Literal
 
+import structlog
 from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
 from langchain_core.tools import BaseTool
 from langchain_openai import ChatOpenAI
@@ -11,6 +12,8 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode
 
 from chatbot.domain import ChatbotState, Product
+
+logger = structlog.get_logger("ramon.chatbot.graph")
 
 SYSTEM_PROMPT = (
     "You are a technical assistant for RAMon, an online hardware store. "
@@ -87,6 +90,8 @@ def _should_continue(state: ChatbotState) -> Literal["tools", END]:
     """Determine if the chatbot should call tools or end."""
     last = state["messages"][-1]
     if hasattr(last, "tool_calls") and last.tool_calls:
+        tool_names = [tc["name"] for tc in last.tool_calls]
+        logger.debug("graph.tool_calls", tools=tool_names)
         return "tools"
     return END
 

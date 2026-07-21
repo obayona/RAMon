@@ -119,8 +119,25 @@ Use absolute imports from `src.*` in backend, relative or absolute `chatbot.*` i
 - `snake_case` for functions, variables, module names.
 - `PascalCase` for classes, exceptions.
 - Private module helpers prefixed with `_` (e.g., `_build_database_url`).
-- Loggers: `logging.getLogger("ramon.<module>")` (e.g., `ramon.server`, `ramon.websocket`).
+- Loggers: `structlog.get_logger("ramon.<module>")` (e.g., `ramon.server`, `ramon.websocket`).
 - Router variable always named `router` in route modules.
+
+### Logging
+
+Use [structlog](https://www.structlog.org/) throughout. The library emits
+log records; the host application configures handlers.
+
+- **Backend**: `structlog.get_logger("ramon.<module>")` — configure via
+  `configure_logging()` in `src/core/logging.py`.
+- **Chatbot**: Same pattern, but log at DEBUG level only. Never call
+  `structlog.configure()` from the library.
+
+Log events use `dot.separated` names (e.g., `ws.connected`, `worker.batch.completed`).
+Context is passed as keyword arguments: `logger.info("event", key=value)`.
+
+Use `structlog.contextvars.bind_contextvars()` for request-scoped context
+(request_id, chat_id). The `merge_contextvars` processor picks these up
+automatically.
 
 ### Docstrings
 

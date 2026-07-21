@@ -2,10 +2,11 @@
 from __future__ import annotations
 
 import json
-import logging
 from typing import Any, Dict, List
 
-logger = logging.getLogger("ramon.sync")
+import structlog
+
+logger = structlog.get_logger("ramon.sync")
 
 
 class PostgresSyncEnqueuer:
@@ -27,5 +28,5 @@ class PostgresSyncEnqueuer:
                 (payloads,),
             )
 
-        logger.info("Enqueued %d sync changes", len(changes))
+        logger.info("sync.enqueued", count=len(changes))
         return len(changes)

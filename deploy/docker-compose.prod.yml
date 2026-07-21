@@ -25,6 +25,8 @@ services:
     env_file: ../backend/.env
     environment:
       DB_HOST: postgres
+      LOG_FORMAT: json
+      LOG_DIR: /var/log/ramon
     depends_on:
       postgres:
         condition: service_healthy
@@ -43,6 +45,8 @@ services:
       - --error-logfile
       - "-"
       - --capture-output
+    volumes:
+      - log_data:/var/log/ramon
     expose:
       - "8000"
     networks:
@@ -105,3 +109,4 @@ networks:
 
 volumes:
   postgres_data:
+  log_data:
