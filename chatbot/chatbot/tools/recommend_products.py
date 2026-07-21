@@ -1,8 +1,10 @@
 """Product recommendation tool using semantic search."""
-import json
-from typing import Optional
+from __future__ import annotations
+
+from typing import Literal, Optional
 
 from langchain_core.tools import tool
+from langgraph.types import Command
 
 from chatbot.domain.ports import EmbeddingService, ProductRepository
 
@@ -20,14 +22,12 @@ def make_recommend_products(
         query: str,
         min_price: Optional[float] = None,
         max_price: Optional[float] = None,
-    ) -> str:
+    ) -> Command[Literal["process_recommendations"]]:
         """Search for hardware products using semantic similarity with optional price filtering.
 
-        The query is embedded and searched against the product database using 
+        The query is embedded and searched against the product database using
         cosine distance. ``min_price`` / ``max_price`` are applied as filters.
         Only returns products with a similarity score of 70% or higher.
-        Returns the top matching products as a JSON array, or a message if no
-        products meet the similarity threshold.
         """
         # Generate embedding for the query
         embedding = await embedding_service.embed(query)
@@ -41,6 +41,15 @@ def make_recommend_products(
             limit=3,
         )
 
-        return json.dumps(products, indent=2)
+        # Return Command to update state and route to process_recommendations
+        # No ToolMessage needed - the final response from process_recommendations
+        # will contain the product context, saving tokens on future LLM calls
+        return Command(
+            goto="process_recommendations",
+            update={
+                "product_query": query,
+                "recommendations": products,
+            },
+        )
 
     return recommend_products
