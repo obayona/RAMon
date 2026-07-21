@@ -116,13 +116,25 @@ class ChatbotService:
         message_id: Optional[str] = None
         parser = ProductMarkerParser()
 
+        # Track which node we're streaming from to avoid mixing outputs
+        # Only stream from: chatbot (final response) or process_recommendations
+        stream_nodes = {"chatbot", "process_recommendations"}
+
         async for msg, metadata in self._app.astream(
             state,
             config,
             stream_mode="messages",
         ):
-            # Process AI message content through the parser
-            if msg.content and isinstance(msg, AIMessage):
+            node_name = metadata.get("langgraph_node", "")
+
+            # Only process AI messages from allowed nodes
+            # Skip messages from chatbot when it's deciding to call tools (has tool_calls)
+            if (
+                msg.content
+                and isinstance(msg, AIMessage)
+                and node_name in stream_nodes
+                and not msg.tool_calls
+            ):
                 if not message_id:
                     message_id = metadata.get("run_id") or getattr(msg, "id", None)
 

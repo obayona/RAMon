@@ -29,13 +29,12 @@ The chatbot is implemented as a LangGraph state machine:
 
 **Flow:**
 1. User message → `chatbot` decides whether to call tools
-2. If `recommend_products` is called → tool uses `Command(goto="process_recommendations")` to:
-   - Update state with `product_query` and `recommendations`
-   - Route directly to `process_recommendations` node
-3. `process_recommendations` evaluates if products match the query
-4. Relevant products are embedded in response as `<products>[...]</products>` markers
-5. Irrelevant or empty results: LLM explains what's missing (no hardcoded responses)
-6. If `search_component_spec` is called → results flow back to `chatbot` for natural response
+2. If `recommend_products` is called → tool updates state with `product_query` and `recommendations`
+3. Conditional edge checks `product_query` in state → routes to `process_recommendations`
+4. `process_recommendations` evaluates if products match the query
+5. Relevant products are embedded in response as `<products>[...]</products>` markers
+6. Irrelevant or empty results: LLM explains what's missing (no hardcoded responses)
+7. If `search_component_spec` is called → results flow back to `chatbot` for natural response
 
 ## Installation
 

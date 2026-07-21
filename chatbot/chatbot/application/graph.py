@@ -44,21 +44,21 @@ Respond in the same language the user used in their query.
 Examples:
 
 Query: "gaming laptop"
-Products: [{"name": "ASUS ROG Gaming Laptop", "price": 1299.99}, {"name": "MSI Gaming Laptop", "price": 1199.99}]
+Products: [{{"name": "ASUS ROG Gaming Laptop", "price": 1299.99}}, {{"name": "MSI Gaming Laptop", "price": 1199.99}}]
 Response: Here are some gaming laptops that match your needs:
-<products>[{"name": "ASUS ROG Gaming Laptop", "price": 1299.99}, {"name": "MSI Gaming Laptop", "price": 1199.99}]</products>
+<products>[{{"name": "ASUS ROG Gaming Laptop", "price": 1299.99}}, {{"name": "MSI Gaming Laptop", "price": 1199.99}}]</products>
 
 Query: "bikes"
-Products: [{"name": "Garmin Smartwatch for Cycling", "price": 299.99}]
+Products: [{{"name": "Garmin Smartwatch for Cycling", "price": 299.99}}]
 Response: I don't have bikes in our inventory. We're a computer hardware store, so we specialize in electronics like computers, monitors, and accessories. Is there anything else I can help you with?
 
 Query: "monitor under $300"
-Products: [{"name": "Dell 27 Monitor", "price": 279.99}, {"name": "LG 24 Monitor", "price": 199.99}]
+Products: [{{"name": "Dell 27 Monitor", "price": 279.99}}, {{"name": "LG 24 Monitor", "price": 199.99}}]
 Response: I found some monitors within your budget:
-<products>[{"name": "Dell 27 Monitor", "price": 279.99}, {"name": "LG 24 Monitor", "price": 199.99}]</products>
+<products>[{{"name": "Dell 27 Monitor", "price": 279.99}}, {{"name": "LG 24 Monitor", "price": 199.99}}]</products>
 
 Query: "mechanical keyboard"
-Products: [{"name": "Gaming Mouse", "price": 49.99}, {"name": "USB Hub", "price": 29.99}]
+Products: [{{"name": "Gaming Mouse", "price": 49.99}}, {{"name": "USB Hub", "price": 29.99}}]
 Response: I couldn't find any mechanical keyboards in our current inventory. Would you like me to help you find other peripherals or accessories instead?
 
 Query: "ultrawide monitor"
@@ -140,18 +140,29 @@ def _make_process_recommendations_node(model: ChatOpenAI):
     return process_recommendations
 
 
+def _route_after_tools(state: ChatbotState) -> Literal["process_recommendations", "chatbot"]:
+    """Route after tools based on whether recommend_products was called.
+
+    recommend_products sets product_query in state, so we use that to detect
+    if we should go to process_recommendations or back to chatbot.
+    """
+    if state.get("product_query"):
+        return "process_recommendations"
+    return "chatbot"
+
+
 def build_graph(model: ChatOpenAI, tools: List[BaseTool]) -> StateGraph:
     """Build the LangGraph workflow for the chatbot.
 
     Flow:
         START → chatbot → [tool_calls?]
-            → YES: tools →
-                - recommend_products: routes via Command(goto="process_recommendations")
-                - search_component_spec: returns to chatbot (default edge)
+            → YES: tools → [product_query in state?]
+                → YES: process_recommendations → END
+                → NO:  chatbot (loop for search_component_spec)
             → NO: END
 
-    The recommend_products tool uses Command to update state with product_query
-    and recommendations, and routes directly to process_recommendations.
+    The recommend_products tool updates state with product_query and
+    recommendations, which triggers routing to process_recommendations.
 
     Args:
         model: ChatOpenAI model for conversation.
@@ -164,9 +175,8 @@ def build_graph(model: ChatOpenAI, tools: List[BaseTool]) -> StateGraph:
     graph = StateGraph(ChatbotState)
 
     # Nodes
-    # Note: tools node has destinations hint for graph visualization
     graph.add_node("chatbot", _make_chatbot_node(bound_model))
-    graph.add_node("tools", ToolNode(tools), destinations=("process_recommendations", "chatbot"))
+    graph.add_node("tools", ToolNode(tools))
     graph.add_node("process_recommendations", _make_process_recommendations_node(model))
 
     # Edges
@@ -174,9 +184,12 @@ def build_graph(model: ChatOpenAI, tools: List[BaseTool]) -> StateGraph:
     graph.add_conditional_edges(
         "chatbot", _should_continue, {END: END, "tools": "tools"}
     )
-    # Default edge for tools that don't use Command(goto=...)
-    # recommend_products uses Command(goto="process_recommendations") to override
-    graph.add_edge("tools", "chatbot")
+    # Route based on whether recommend_products was called (sets product_query)
+    graph.add_conditional_edges(
+        "tools",
+        _route_after_tools,
+        {"process_recommendations": "process_recommendations", "chatbot": "chatbot"},
+    )
     graph.add_edge("process_recommendations", END)
 
     return graph

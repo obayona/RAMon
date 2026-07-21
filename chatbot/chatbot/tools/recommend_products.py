@@ -1,10 +1,12 @@
 """Product recommendation tool using semantic search."""
 from __future__ import annotations
 
-from typing import Literal, Optional
+from typing import Annotated, Optional
 
 import structlog
+from langchain_core.messages import ToolMessage
 from langchain_core.tools import tool
+from langchain_core.tools.base import InjectedToolCallId
 from langgraph.types import Command
 
 from chatbot.domain.ports import EmbeddingService, ProductRepository
@@ -23,9 +25,10 @@ def make_recommend_products(
     @tool
     async def recommend_products(
         query: str,
+        tool_call_id: Annotated[str, InjectedToolCallId],
         min_price: Optional[float] = None,
         max_price: Optional[float] = None,
-    ) -> Command[Literal["process_recommendations"]]:
+    ) -> Command:
         """Search for hardware products using semantic similarity with optional price filtering.
 
         The query is embedded and searched against the product database using
@@ -52,14 +55,20 @@ def make_recommend_products(
 
         logger.debug("recommend_products.results", count=len(products))
 
-        # Return Command to update state and route to process_recommendations
-        # No ToolMessage needed - the final response from process_recommendations
-        # will contain the product context, saving tokens on future LLM calls
+        # Minimal ToolMessage with just IDs to save tokens
+        # Full product data is in state and will be in the final AI response
+        product_ids = [p.get("id") or p.get("product_id") for p in products]
+        tool_content = f"Found {len(products)} products: {product_ids}" if products else "No products found"
+
+        # Update state with query and recommendations
+        # Routing is handled by conditional edge in graph based on product_query
         return Command(
-            goto="process_recommendations",
             update={
                 "product_query": query,
                 "recommendations": products,
+                "messages": [
+                    ToolMessage(content=tool_content, tool_call_id=tool_call_id)
+                ],
             },
         )
 
