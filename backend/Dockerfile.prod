@@ -71,8 +71,17 @@ RUN chmod 0644 /etc/cron.d/ramon-sync && \
 # Make entrypoint executable
 RUN chmod +x entrypoint.sh
 
-# Switch to non-root user
-USER appuser
+# Create a wrapper script that starts cron as root, then drops to appuser
+RUN printf '#!/bin/bash\nservice cron start\nexec gosu appuser "$@"\n' > /usr/local/bin/docker-entrypoint.sh && \
+    chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Install gosu for proper privilege dropping
+RUN apt-get update && apt-get install -y --no-install-recommends gosu && \
+    rm -rf /var/lib/apt/lists/*
+
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+
+# Note: Container starts as root to run cron, then drops to appuser via gosu in entrypoint
 
 # Expose the FastAPI port
 EXPOSE 8000

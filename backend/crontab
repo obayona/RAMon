@@ -1,3 +1,4 @@
 # RAMon sync worker crontab
 # Processes pending product sync items every minute
-* * * * * /usr/local/bin/python /app/backend/worker/process_queue.py >> /var/log/ramon/worker.log 2>&1
+# Uses virtualenv Python (/opt/venv) where dependencies are installed
+* * * * * /opt/venv/bin/python /app/backend/worker/process_queue.py >> /var/log/ramon/worker.log 2>&1

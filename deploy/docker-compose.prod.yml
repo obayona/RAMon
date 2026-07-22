@@ -30,8 +30,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    entrypoint: ["/bin/bash", "/app/backend/entrypoint.sh"]
     command:
+      - /bin/bash
+      - /app/backend/entrypoint.sh
       - gunicorn
       - src.main:app
       - --worker-class

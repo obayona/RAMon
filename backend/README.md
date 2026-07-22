@@ -51,7 +51,24 @@ cd ../deploy
 docker compose run --rm fixtures-load
 ```
 
-### 3. Stop the stack
+### 3. Run the sync worker manually
+
+The sync worker processes product changes queued via the `/sync` endpoint. In production,
+this runs automatically via cron every minute. In development, run it manually:
+
+```bash
+# From the deploy/ directory, with the stack running:
+docker compose exec backend python /app/backend/worker/process_queue.py
+
+# Or run it locally (with your .env configured):
+cd backend
+python worker/process_queue.py
+```
+
+The worker processes one batch (default 10 items) per invocation and exits. Run it
+repeatedly or set `SYNC_BATCH_SIZE` to process more items at once.
+
+### 4. Stop the stack
 
 ```bash
 cd ../deploy
