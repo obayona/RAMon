@@ -42,6 +42,9 @@ class PostgresProductRepository:
             price_conditions.append("price <= %s")
             price_params.append(max_price)
 
+        price_conditions.append("in_stock = true")
+        price_conditions.append("status = 'published'")
+
         inner_where = ""
         if price_conditions:
             inner_where = "WHERE " + " AND ".join(price_conditions)
