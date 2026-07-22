@@ -58,6 +58,7 @@ final class SettingsPage
      */
     public function renderPage(): void
     {
+        $this->handleForceSyncAction();
         $this->handleRetryAction();
 
         $appKey = (string) $this->options->get('ramon_app_key', '');
@@ -124,6 +125,19 @@ final class SettingsPage
                 are created, updated, or deleted. The backend processes them in the
                 background via a worker that runs every minute.
             </p>
+
+            <?php if ($configured && $syncStatus->status !== SyncStatus::STATUS_RUNNING) : ?>
+                <form method="post" style="margin-top:16px;">
+                    <?php \wp_nonce_field('ramon_force_sync'); ?>
+                    <input type="hidden" name="ramon_force_sync" value="1" />
+                    <button type="submit" class="button button-secondary" onclick="return confirm('This will re-sync all products from scratch. Continue?');">
+                        Force Sync
+                    </button>
+                    <p class="description" style="margin-left:8px;display:inline;">
+                        Drop and restart the initial product sync for all products.
+                    </p>
+                </form>
+            <?php endif; ?>
         </div>
         <?php
     }
@@ -131,6 +145,17 @@ final class SettingsPage
     // ------------------------------------------------------------------
     // Private helpers
     // ------------------------------------------------------------------
+
+    /**
+     * Handle the force sync action if submitted.
+     */
+    private function handleForceSyncAction(): void
+    {
+        if (isset($_POST['ramon_force_sync']) && \check_admin_referer('ramon_force_sync')) {
+            $this->initialSync->startSync();
+            echo '<div class="notice notice-info"><p>Initial product sync has been restarted.</p></div>';
+        }
+    }
 
     /**
      * Handle the retry action if submitted.

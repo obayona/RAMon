@@ -285,6 +285,27 @@ final class InitialSync
     }
 
     // ------------------------------------------------------------------
+    // Force sync
+    // ------------------------------------------------------------------
+
+    /**
+     * Force-start the initial sync from scratch.
+     *
+     * Drops any existing sync table and restarts the process.
+     * Called from the admin "Force Sync" button.
+     */
+    public function startSync(): void
+    {
+        $this->log('startSync: force-starting initial sync');
+
+        if ($this->repo->tableExists()) {
+            $this->repo->dropTable();
+        }
+
+        $this->flagActivation();
+    }
+
+    // ------------------------------------------------------------------
     // Retry
     // ------------------------------------------------------------------
 
