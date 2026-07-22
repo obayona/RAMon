@@ -34,21 +34,20 @@ SYSTEM_PROMPT = (
 RECOMMENDATIONS_PROMPT = """You are evaluating product recommendations for relevance.
 
 Given the user's search query and the products retrieved from the database, decide:
-1. If products are RELEVANT: Write a short intro, then include the COMPLETE products JSON array unchanged inside <products>...</products> tags
-2. If products are NOT RELEVANT or empty: Do NOT include the <products> marker, explain what you don't have
+1. If products are RELEVANT: Write a short intro, then output the marker <products/> (the system will inject the actual data)
+2. If products are NOT RELEVANT or empty: Do NOT include the marker, explain what you don't have
 
-CRITICAL: When including products, copy the ENTIRE JSON array exactly as provided. Do not modify, summarize, or omit any fields.
 Respond in the same language the user used in their query.
 
 Examples:
 
 Query: "gaming laptop"
-Products: [{{"id": 1, "name": "ASUS ROG", "price": 1299.99, "url": "/p/1"}}]
-Response: Here are some gaming laptops:
-<products>[{{"id": 1, "name": "ASUS ROG", "price": 1299.99, "url": "/p/1"}}]</products>
+Products: [{{"name": "ASUS ROG", "price": 1299.99}}]
+Response: Here are some gaming laptops that match your needs:
+<products/>
 
 Query: "bikes"
-Products: [{{"id": 5, "name": "Smartwatch", "price": 299.99, "url": "/p/5"}}]
+Products: [{{"name": "Smartwatch for Cycling", "price": 299.99}}]
 Response: I don't have bikes in our inventory. We specialize in computer hardware. Can I help you find something else?
 
 Query: "mechanical keyboard"

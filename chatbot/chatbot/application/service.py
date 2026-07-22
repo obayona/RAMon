@@ -95,9 +95,8 @@ class ChatbotService:
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """Stream text tokens and product recommendations in real-time.
 
-        Text is streamed as it arrives from the LLM. Product recommendations
-        are parsed from <products>...</products> markers in the LLM output
-        and emitted as separate ui_data events.
+        Text is streamed as it arrives from the LLM. When the LLM outputs a
+        <products/> marker, the parser injects the actual products from state.
 
         Yields:
             Dict with keys:
@@ -114,7 +113,10 @@ class ChatbotService:
 
         config = {"configurable": {"thread_id": chat_id}}
         message_id: Optional[str] = None
-        parser = ProductMarkerParser()
+
+        # Parser is created lazily once we have products from state
+        parser: Optional[ProductMarkerParser] = None
+        recommendations: List[Dict[str, Any]] = []
 
         # Track which node we're streaming from to avoid mixing outputs
         # Only stream from: chatbot (final response) or process_recommendations
@@ -138,12 +140,20 @@ class ChatbotService:
                 if not message_id:
                     message_id = metadata.get("run_id") or getattr(msg, "id", None)
 
+                # Create parser with products on first content from process_recommendations
+                if parser is None:
+                    # Get current state to access recommendations
+                    current_state = await self._app.aget_state(config)
+                    recommendations = current_state.values.get("recommendations", [])
+                    parser = ProductMarkerParser(products=recommendations)
+
                 for event in parser.feed(msg.content):
                     yield self._make_stream_event(event, message_id, chat_id)
 
         # Flush any remaining buffered content
-        for event in parser.flush():
-            yield self._make_stream_event(event, message_id, chat_id)
+        if parser is not None:
+            for event in parser.flush():
+                yield self._make_stream_event(event, message_id, chat_id)
 
     def _make_stream_event(
         self,
@@ -184,19 +194,30 @@ class ChatbotService:
         if not messages:
             raise ChatNotFoundError(f"Chat '{chat_id}' has no messages")
 
-        return self._format_messages(messages)
+        # Get recommendations from state to inject into <products/> markers
+        recommendations = state.values.get("recommendations", [])
+        return self._format_messages(messages, recommendations)
 
-    def _format_messages(self, messages: List[BaseMessage]) -> List[Dict[str, Any]]:
+    def _format_messages(
+        self,
+        messages: List[BaseMessage],
+        recommendations: List[Dict[str, Any]] | None = None,
+    ) -> List[Dict[str, Any]]:
         """Format message history for API responses.
 
-        Parses <products>...</products> markers in AI messages and extracts
-        them as separate ui_data entries for frontend rendering.
+        Parses <products/> markers in AI messages and injects products data.
+
+        Args:
+            messages: List of messages from state.
+            recommendations: Products to inject when <products/> marker is found.
         """
         formatted: List[Dict[str, Any]] = []
+        products_to_inject = recommendations or []
+
         for msg in messages:
             if isinstance(msg, AIMessage) and not msg.tool_calls:
                 # Parse the message content for product markers
-                parsed_content = self._parse_message_content(msg.content)
+                parsed_content = self._parse_message_content(msg.content, products_to_inject)
                 msg_id = getattr(msg, "id", None)
 
                 # Add text portion
@@ -231,31 +252,36 @@ class ChatbotService:
 
         return formatted
 
-    def _parse_message_content(self, content: str) -> Dict[str, Any]:
+    def _parse_message_content(
+        self,
+        content: str,
+        products: List[Dict[str, Any]] | None = None,
+    ) -> Dict[str, Any]:
         """Parse message content to extract text and product markers.
 
         Args:
-            content: Raw message content potentially containing <products> markers.
+            content: Raw message content potentially containing <products/> markers.
+            products: Products to inject when <products/> marker is found.
 
         Returns:
             Dict with 'text' (cleaned content) and 'products' (list or None).
         """
-        parser = ProductMarkerParser()
+        parser = ProductMarkerParser(products=products or [])
         events = parser.feed(content)
         events.extend(parser.flush())
 
         text_parts = []
-        products = None
+        parsed_products = None
 
         for event in events:
             if event["type"] == "text":
                 text_parts.append(event["content"])
             elif event["type"] == "products":
-                products = event["data"]
+                parsed_products = event["data"]
 
         return {
             "text": "".join(text_parts).strip(),
-            "products": products,
+            "products": parsed_products,
         }
 
     @property
