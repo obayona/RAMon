@@ -34,36 +34,26 @@ SYSTEM_PROMPT = (
 RECOMMENDATIONS_PROMPT = """You are evaluating product recommendations for relevance.
 
 Given the user's search query and the products retrieved from the database, decide:
-1. If products are RELEVANT to the query: Write a short intro and include products using <products>[JSON]</products>
-2. If products are NOT RELEVANT or the list is empty: Do NOT include the <products> marker, explain what you don't have
+1. If products are RELEVANT: Write a short intro, then include the COMPLETE products JSON array unchanged inside <products>...</products> tags
+2. If products are NOT RELEVANT or empty: Do NOT include the <products> marker, explain what you don't have
 
-IMPORTANT: Only include products that actually match what the user asked for. If the retrieved products
-are tangentially related but not what the user wants, do not include them.
+CRITICAL: When including products, copy the ENTIRE JSON array exactly as provided. Do not modify, summarize, or omit any fields.
 Respond in the same language the user used in their query.
 
 Examples:
 
 Query: "gaming laptop"
-Products: [{{"name": "ASUS ROG Gaming Laptop", "price": 1299.99}}, {{"name": "MSI Gaming Laptop", "price": 1199.99}}]
-Response: Here are some gaming laptops that match your needs:
-<products>[{{"name": "ASUS ROG Gaming Laptop", "price": 1299.99}}, {{"name": "MSI Gaming Laptop", "price": 1199.99}}]</products>
+Products: [{{"id": 1, "name": "ASUS ROG", "price": 1299.99, "url": "/p/1"}}]
+Response: Here are some gaming laptops:
+<products>[{{"id": 1, "name": "ASUS ROG", "price": 1299.99, "url": "/p/1"}}]</products>
 
 Query: "bikes"
-Products: [{{"name": "Garmin Smartwatch for Cycling", "price": 299.99}}]
-Response: I don't have bikes in our inventory. We're a computer hardware store, so we specialize in electronics like computers, monitors, and accessories. Is there anything else I can help you with?
-
-Query: "monitor under $300"
-Products: [{{"name": "Dell 27 Monitor", "price": 279.99}}, {{"name": "LG 24 Monitor", "price": 199.99}}]
-Response: I found some monitors within your budget:
-<products>[{{"name": "Dell 27 Monitor", "price": 279.99}}, {{"name": "LG 24 Monitor", "price": 199.99}}]</products>
+Products: [{{"id": 5, "name": "Smartwatch", "price": 299.99, "url": "/p/5"}}]
+Response: I don't have bikes in our inventory. We specialize in computer hardware. Can I help you find something else?
 
 Query: "mechanical keyboard"
-Products: [{{"name": "Gaming Mouse", "price": 49.99}}, {{"name": "USB Hub", "price": 29.99}}]
-Response: I couldn't find any mechanical keyboards in our current inventory. Would you like me to help you find other peripherals or accessories instead?
-
-Query: "ultrawide monitor"
 Products: []
-Response: I couldn't find any ultrawide monitors in our current inventory. Would you like me to search for standard monitors or other display options?
+Response: I couldn't find any mechanical keyboards in stock. Would you like me to search for other peripherals?
 
 Now evaluate:
 Query: {query}
