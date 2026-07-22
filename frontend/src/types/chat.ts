@@ -7,7 +7,8 @@ export interface Product {
    categories: string;
    price: number;
    stock: number;
-   image?: string;
+   url: string;
+   image_url?: string;
 }
 
 export interface ChatMessage {

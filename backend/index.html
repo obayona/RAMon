@@ -158,15 +158,24 @@
       });
       if (response.ok) {
         const data = await response.json();
-        return data;
+        return data.map(function(msg) {
+          return {
+            id: msg.id,
+            type: (msg.products ?? []).length > 0 ? 'ui_data' : 'text',
+            text: msg.content,
+            products: msg.products,
+            role: msg.role === "user" ? "human" : "ai",
+          }
+        })
       }
+      return [];
     }
 
     async function render_old_chat(chat_id) {
       try {
         const chats = await get_old_chat(chat_id)
         for (let chat of chats) {
-          appendMsg(chat.text, chat.type)
+          appendMsg(chat.text, chat.role)
           if (chat.type == "ui_data") {
             renderProducts(chat.products)
           }

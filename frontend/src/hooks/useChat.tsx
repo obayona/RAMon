@@ -69,7 +69,7 @@ export function useChat() {
             token,
             chatId: chatId.current,
          });
-
+         console.log(history)
          setMessages(history);
       } catch (err) {
          console.error(err);

@@ -11,9 +11,9 @@ export default function ProductCard({ product }: Props) {
       <Card className='w-50 shrink-0 overflow-hidden transition-shadow hover:shadow-md'>
          <CardContent className='p-3'>
             <div className='mb-3 flex aspect-square items-center justify-center overflow-hidden rounded-lg bg-slate-100'>
-               {product.image ? (
+               {product.image_url ? (
                   <img
-                     src={product.image}
+                     src={product.image_url}
                      alt={product.name}
                      className='h-full w-full object-cover'
                   />
@@ -35,7 +35,10 @@ export default function ProductCard({ product }: Props) {
                   ${product.price?.toFixed(2)}
                </span>
 
-               <a href={`/p=${product.product_id}`} className='border border-solid p-2'>Ver</a>
+               {
+                  product.url &&
+                  <a href={product.url} className='border border-solid p-2'>Ver</a>
+               }
             </div>
          </CardContent>
       </Card>

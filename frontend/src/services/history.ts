@@ -1,14 +1,4 @@
-import type { ChatMessage, Product } from '@/types/chat';
-
-interface HistoryResponse {
-   id: string;
-   type: 'human' | 'ai';
-   text?: string;
-   ui_data?: {
-      layout: 'carousel';
-      products: Product[];
-   };
-}
+import type { ChatMessage } from '@/types/chat';
 
 interface LoadHistoryParams {
    apiUrl: string;
@@ -31,12 +21,5 @@ export async function loadHistory({
       throw new Error('Failed to load chat history');
    }
 
-   const data: HistoryResponse[] = await response.json();
-
-   return data.map((message) => ({
-      id: message.id,
-      role: message.type === 'human' ? 'user' : 'assistant',
-      content: message.text,
-      products: message.ui_data?.products,
-   }));
+   return await response.json();
 }
