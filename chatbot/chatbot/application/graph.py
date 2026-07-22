@@ -124,6 +124,10 @@ def _make_process_recommendations_node(model: ChatOpenAI):
         )
 
         response = model.invoke([SystemMessage(content=prompt)])
+
+        # Store recommendations on the message for chat history retrieval
+        response.additional_kwargs["recommendations"] = recommendations
+
         return {"messages": [response]}
 
     return process_recommendations

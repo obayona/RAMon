@@ -194,50 +194,32 @@ class ChatbotService:
         if not messages:
             raise ChatNotFoundError(f"Chat '{chat_id}' has no messages")
 
-        # Get recommendations from state to inject into <products/> markers
-        recommendations = state.values.get("recommendations", [])
-        return self._format_messages(messages, recommendations)
+        return self._format_messages(messages)
 
-    def _format_messages(
-        self,
-        messages: List[BaseMessage],
-        recommendations: List[Dict[str, Any]] | None = None,
-    ) -> List[Dict[str, Any]]:
+    def _format_messages(self, messages: List[BaseMessage]) -> List[Dict[str, Any]]:
         """Format message history for API responses.
 
-        Parses <products/> markers in AI messages and injects products data.
-
-        Args:
-            messages: List of messages from state.
-            recommendations: Products to inject when <products/> marker is found.
+        Removes <products/> markers from AI messages and includes products from
+        the message's additional_kwargs as separate ui_data entries.
         """
         formatted: List[Dict[str, Any]] = []
-        products_to_inject = recommendations or []
 
         for msg in messages:
             if isinstance(msg, AIMessage) and not msg.tool_calls:
-                # Parse the message content for product markers
-                parsed_content = self._parse_message_content(msg.content, products_to_inject)
                 msg_id = getattr(msg, "id", None)
+                # Remove the <products/> marker from text
+                text = msg.content.replace("<products/>", "").strip()
 
-                # Add text portion
-                if parsed_content["text"]:
+                # Get recommendations stored on this specific message
+                recommendations = msg.additional_kwargs.get("recommendations", [])
+
+                if text:
                     formatted.append(
                         {
                             "id": msg_id,
-                            "type": "ai",
-                            "text": parsed_content["text"],
-                        }
-                    )
-
-                # Add products as ui_data if present
-                if parsed_content["products"]:
-                    formatted.append(
-                        {
-                            "id": msg_id,
-                            "type": "ui_data",
-                            "layout": "carousel",
-                            "products": parsed_content["products"],
+                            "role": "assistant",
+                            "content": text,
+                            "products": recommendations,
                         }
                     )
 
@@ -245,44 +227,12 @@ class ChatbotService:
                 formatted.append(
                     {
                         "id": getattr(msg, "id", None),
-                        "type": "human",
-                        "text": msg.content,
+                        "role": "user",
+                        "content": msg.content,
                     }
                 )
 
         return formatted
-
-    def _parse_message_content(
-        self,
-        content: str,
-        products: List[Dict[str, Any]] | None = None,
-    ) -> Dict[str, Any]:
-        """Parse message content to extract text and product markers.
-
-        Args:
-            content: Raw message content potentially containing <products/> markers.
-            products: Products to inject when <products/> marker is found.
-
-        Returns:
-            Dict with 'text' (cleaned content) and 'products' (list or None).
-        """
-        parser = ProductMarkerParser(products=products or [])
-        events = parser.feed(content)
-        events.extend(parser.flush())
-
-        text_parts = []
-        parsed_products = None
-
-        for event in events:
-            if event["type"] == "text":
-                text_parts.append(event["content"])
-            elif event["type"] == "products":
-                parsed_products = event["data"]
-
-        return {
-            "text": "".join(text_parts).strip(),
-            "products": parsed_products,
-        }
 
     @property
     def compiled_graph(self) -> CompiledStateGraph:
