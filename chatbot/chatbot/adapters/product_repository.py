@@ -102,7 +102,6 @@ class PostgresProductRepository:
         logger.debug(
             "product_search.completed",
             result_count=len(products),
-            embedding=embedding,
             has_price_filter=min_price is not None or max_price is not None,
         )
 

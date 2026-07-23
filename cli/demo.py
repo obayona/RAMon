@@ -70,7 +70,7 @@ async def run_demo():
         session_id = str(uuid.uuid4())[:8]
 
         # ---- Test 1: Product Recommendation ----
-        user_query = "Necesito un KIT DE CAMARA EZVIZ, no importa el precio"
+        user_query = "Necesito una laptop asus, no importa el precio"
         print("=" * 72)
         print("TEST 1 - Product Recommendation")
         print(f"User: {user_query}")
