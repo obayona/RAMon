@@ -20,45 +20,51 @@ SYSTEM_PROMPT = (
     "You are a technical assistant for RAMon, an online hardware store. "
     "You help customers find products and answer hardware compatibility questions.\n\n"
     "Rules:\n"
-    "1. If the user asks about compatibility with their own hardware (e.g. \"will this work "
+    "1. Always respond in the same language the user writes in.\n"
+    "2. If the user asks about compatibility with their own hardware (e.g. \"will this work "
     "with my motherboard X\"), look at the current_product context if available and use "
     "search_component_spec to fetch specs for the user's external component.\n"
-    "2. If the user wants product recommendations, translate vague requirements (\"watching "
-    "YouTube\", \"gaming\") into precise technical search terms and call recommend_products. "
+    "3. If the user wants product recommendations, refine the query into precise technical "
+    "terms in the same language. For example, \"celulares baratos\" becomes \"telefono movil "
+    "gama baja\", NOT \"smartphone\". Do NOT translate to another language. "
     "Extract budget constraints from the query and pass them as min_price / max_price.\n"
-    "3. If the question is general or you already have enough facts, answer directly without "
+    "4. If the question is general or you already have enough facts, answer directly without "
     "calling tools.\n"
-    "4. If you need more details from the user, ask clarifying questions before invoking tools.\n"
+    "5. If you need more details from the user, ask clarifying questions before invoking tools.\n"
     "Be concise, technical, and helpful."
 )
 
 RECOMMENDATIONS_PROMPT = """You are evaluating product recommendations for relevance.
 
-Given the user's search query and the products retrieved from the database, decide:
+Given the user's original query, the refined search query used, and the products retrieved from the database, decide:
 1. If some products are RELEVANT: Write a short intro, then output the marker <products ids="1,2,3"/> listing ONLY the IDs of the relevant products (comma-separated). Do NOT include irrelevant products.
 2. If products are NOT RELEVANT or empty: Do NOT include the marker, explain what you don't have
 
 The products JSON includes an "id" field for each product. Use those IDs in the marker.
 
-Respond in the same language the user used in their query.
+The "User query" is the original message from the user. ALWAYS respond in the same language as the user query.
 
 Examples:
 
-Query: "gaming laptop"
+User query: "gaming laptop"
+Refined query: "laptop gaming rendimiento alto"
 Products: [{{"id": 1, "name": "ASUS ROG", "price": 1299.99}}, {{"id": 2, "name": "Office Mouse", "price": 15.99}}]
-Response: Here is a gaming laptop that matches your needs:
+Response: Aquí tienes un laptop gaming que se adapta a tus necesidades:
 <products ids="1"/>
 
-Query: "bikes"
+User query: "bicicletas"
+Refined query: "bicicleta"
 Products: [{{"id": 3, "name": "Smartwatch for Cycling", "price": 299.99}}]
-Response: I don't have bikes in our inventory. We specialize in computer hardware. Can I help you find something else?
+Response: No tenemos bicicletas en nuestro inventario. Somos una tienda de hardware de cómputo. ¿Puedo ayudarte con algo más?
 
-Query: "mechanical keyboard"
+User query: "teclado mecánico"
+Refined query: "teclado mecanico switch"
 Products: []
-Response: I couldn't find any mechanical keyboards in stock. Would you like me to search for other peripherals?
+Response: No encontré teclados mecánicos en existencia. ¿Te gustaría que busque otros periféricos?
 
 Now evaluate:
-Query: {query}
+User query: {original_query}
+Refined query: {query}
 Products: {products}
 Response:"""
 
@@ -117,11 +123,13 @@ def _make_process_recommendations_node(model: ChatOpenAI):
 
     def process_recommendations(state: ChatbotState) -> Dict[str, Any]:
         query = state.get("product_query", "")
+        original_query = state.get("original_query", "")
         recommendations = state.get("recommendations", [])
 
         logger.debug(
             "process_recommendations.start",
             query=query,
+            original_query=original_query,
             total_products=len(recommendations),
         )
 
@@ -131,6 +139,7 @@ def _make_process_recommendations_node(model: ChatOpenAI):
 
         # Build the evaluation prompt
         prompt = RECOMMENDATIONS_PROMPT.format(
+            original_query=original_query or "unknown",
             query=query or "unknown",
             products=products_for_prompt,
         )

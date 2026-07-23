@@ -82,6 +82,7 @@ class ChatbotService:
             "current_product": current_product,
             "recommendations": [],
             "product_query": None,
+            "original_query": message,
         }
 
         result = await self._app.ainvoke(state, {"configurable": {"thread_id": chat_id}})
@@ -111,6 +112,7 @@ class ChatbotService:
             "current_product": current_product,
             "recommendations": [],
             "product_query": None,
+            "original_query": message,
         }
 
         config = {"configurable": {"thread_id": chat_id}}
