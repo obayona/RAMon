@@ -49,7 +49,7 @@ final class ProductDataTest extends TestCase
         $this->assertSame(0.0, $product->price);
         $this->assertSame(0, $product->stock);
         $this->assertTrue($product->inStock);
-        $this->assertSame('published', $product->status);
+        $this->assertSame('publish', $product->status);
     }
 
     public function testToArray(): void

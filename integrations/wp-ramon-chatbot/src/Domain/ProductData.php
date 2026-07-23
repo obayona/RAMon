@@ -40,7 +40,7 @@ final class ProductData
             inStock: (bool) ($data['in_stock'] ?? true),
             url: (string) ($data['url'] ?? ''),
             imageUrl: (string) ($data['image_url'] ?? ''),
-            status: (string) ($data['status'] ?? 'published'),
+            status: (string) ($data['status'] ?? 'publish'),
         );
     }
 

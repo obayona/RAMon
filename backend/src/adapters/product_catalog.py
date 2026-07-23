@@ -52,5 +52,5 @@ class PostgresProductCatalog:
                 in_stock=row["in_stock"] if row["in_stock"] is not None else True,
                 url=row["url"] or "",
                 image_url=row["image_url"] or "",
-                status=row["status"] or "published",
+                status=row["status"] or "publish",
             )

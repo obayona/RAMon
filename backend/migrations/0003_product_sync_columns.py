@@ -16,7 +16,7 @@ steps = [
         "ALTER TABLE products DROP COLUMN IF EXISTS image_url",
     ),
     step(
-        "ALTER TABLE products ADD COLUMN status TEXT DEFAULT 'published'",
+        "ALTER TABLE products ADD COLUMN status TEXT DEFAULT 'publish'",
         "ALTER TABLE products DROP COLUMN IF EXISTS status",
     ),
     step(

@@ -43,7 +43,7 @@ class PostgresProductRepository:
             price_params.append(max_price)
 
         price_conditions.append("in_stock = true")
-        price_conditions.append("status = 'published'")
+        price_conditions.append("status = 'publish'")
 
         inner_where = ""
         if price_conditions:
@@ -93,7 +93,7 @@ class PostgresProductRepository:
                 "in_stock": row["in_stock"] if row["in_stock"] is not None else True,
                 "url": row["url"] or "",
                 "image_url": row["image_url"] or "",
-                "status": row["status"] or "published",
+                "status": row["status"] or "publish",
                 "similarity": float(row["similarity"]),
             }
             for row in rows
@@ -102,6 +102,7 @@ class PostgresProductRepository:
         logger.debug(
             "product_search.completed",
             result_count=len(products),
+            embedding=embedding,
             has_price_filter=min_price is not None or max_price is not None,
         )
 

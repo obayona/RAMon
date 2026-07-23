@@ -147,7 +147,7 @@ def _upsert_product(conn, product_id: str, fields: Dict[str, Any]) -> None:
                     fields.get("in_stock", True),
                     fields.get("url", ""),
                     fields.get("image_url", ""),
-                    fields.get("status", "published"),
+                    fields.get("status", "publish"),
                     str(embedding_value),
                 ),
             )
@@ -183,7 +183,7 @@ def _upsert_product(conn, product_id: str, fields: Dict[str, Any]) -> None:
                     fields.get("in_stock", True),
                     fields.get("url", ""),
                     fields.get("image_url", ""),
-                    fields.get("status", "published"),
+                    fields.get("status", "publish"),
                 ),
             )
 

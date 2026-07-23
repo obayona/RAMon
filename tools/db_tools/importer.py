@@ -83,7 +83,7 @@ def import_products(csv_file: Path) -> None:
                 "price": price,
                 "categories": row.get("Categories", ""),
                 "image_url": (row.get("Images", ",").split())[0].strip(),
-                "status": "published",
+                "status": "publish",
                 "in_stok": True,
             }
             text_for_embedding = f"name: {product['name']}\ndescription: {product['description']}\ncategories: {product['categories']}"
