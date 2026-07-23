@@ -6,7 +6,7 @@ import ChatMessages from './ChatMessages';
 export default function Chat() {
    const { messages, loading, sendMessage } = useChat();
    return (
-      <main className='flex h-full flex-col bg-white border border-solid border-b'>
+      <main className='flex h-full flex-col bg-white border border-solid border-b rounded-lg'>
          <ChatHeader />
 
          <ChatMessages messages={messages} loading={loading} />

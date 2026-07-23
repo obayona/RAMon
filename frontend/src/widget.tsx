@@ -5,6 +5,7 @@ import { getConfig } from './widget/getConfig';
 import styles from './widget.css?inline';
 
 const config = getConfig();
+console.log(styles);
 
 // Create host element
 const hostElement = document.createElement('div');
@@ -16,7 +17,10 @@ const shadowRoot = hostElement.attachShadow({ mode: 'open' });
 
 // Inject styles into shadow DOM
 const styleElement = document.createElement('style');
-styleElement.textContent = styles;
+let shadowStyles = styles.replaceAll(':root', ':host');
+shadowStyles = shadowStyles.replaceAll('.dark', ':host(.dark)');
+
+styleElement.textContent = shadowStyles;
 shadowRoot.appendChild(styleElement);
 
 // Create root element inside shadow DOM
