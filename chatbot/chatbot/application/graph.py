@@ -11,6 +11,7 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode
 
+from chatbot.application.relevance import filter_products_from_response
 from chatbot.domain import ChatbotState, Product
 
 logger = structlog.get_logger("ramon.chatbot.graph")
@@ -34,20 +35,22 @@ SYSTEM_PROMPT = (
 RECOMMENDATIONS_PROMPT = """You are evaluating product recommendations for relevance.
 
 Given the user's search query and the products retrieved from the database, decide:
-1. If products are RELEVANT: Write a short intro, then output the marker <products/> (the system will inject the actual data)
+1. If some products are RELEVANT: Write a short intro, then output the marker <products ids="1,2,3"/> listing ONLY the IDs of the relevant products (comma-separated). Do NOT include irrelevant products.
 2. If products are NOT RELEVANT or empty: Do NOT include the marker, explain what you don't have
+
+The products JSON includes an "id" field for each product. Use those IDs in the marker.
 
 Respond in the same language the user used in their query.
 
 Examples:
 
 Query: "gaming laptop"
-Products: [{{"name": "ASUS ROG", "price": 1299.99}}]
-Response: Here are some gaming laptops that match your needs:
-<products/>
+Products: [{{"id": 1, "name": "ASUS ROG", "price": 1299.99}}, {{"id": 2, "name": "Office Mouse", "price": 15.99}}]
+Response: Here is a gaming laptop that matches your needs:
+<products ids="1"/>
 
 Query: "bikes"
-Products: [{{"name": "Smartwatch for Cycling", "price": 299.99}}]
+Products: [{{"id": 3, "name": "Smartwatch for Cycling", "price": 299.99}}]
 Response: I don't have bikes in our inventory. We specialize in computer hardware. Can I help you find something else?
 
 Query: "mechanical keyboard"
@@ -58,6 +61,7 @@ Now evaluate:
 Query: {query}
 Products: {products}
 Response:"""
+
 
 
 def _build_system_message(product: Product | None = None) -> str:
@@ -101,9 +105,11 @@ def _make_process_recommendations_node(model: ChatOpenAI):
     """Create the process_recommendations node that evaluates relevance.
 
     This node uses a few-shot prompt to determine if retrieved products
-    match the user's query. If relevant, it includes them in the response
-    wrapped in <products>...</products> markers. If not, it explains what's
-    missing without including the products.
+    match the user's query. If relevant, the LLM outputs
+    <products ids="1,2"/> with only the IDs of relevant products. The node
+    filters recommendations to those IDs before storing them.
+
+    If not relevant, it explains what's missing without including the marker.
 
     The product_query and recommendations are already in state, populated
     by the recommend_products tool via Command.
@@ -112,6 +118,12 @@ def _make_process_recommendations_node(model: ChatOpenAI):
     def process_recommendations(state: ChatbotState) -> Dict[str, Any]:
         query = state.get("product_query", "")
         recommendations = state.get("recommendations", [])
+
+        logger.debug(
+            "process_recommendations.start",
+            query=query,
+            total_products=len(recommendations),
+        )
 
         # Prepare products JSON for the prompt
         # Empty list is valid - LLM will explain no products were found
@@ -125,10 +137,20 @@ def _make_process_recommendations_node(model: ChatOpenAI):
 
         response = model.invoke([SystemMessage(content=prompt)])
 
-        # Store recommendations on the message for chat history retrieval
-        response.additional_kwargs["recommendations"] = recommendations
+        # Filter recommendations to only those the LLM deemed relevant
+        content = response.content or ""
+        filtered = filter_products_from_response(recommendations, content)
 
-        return {"messages": [response]}
+        logger.debug(
+            "process_recommendations.filtered",
+            kept=len(filtered),
+            dropped=len(recommendations) - len(filtered),
+        )
+
+        # Store filtered recommendations on the message for chat history
+        response.additional_kwargs["recommendations"] = filtered
+
+        return {"messages": [response], "recommendations": filtered}
 
     return process_recommendations
 

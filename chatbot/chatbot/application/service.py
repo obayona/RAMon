@@ -13,6 +13,7 @@ from openai import OpenAI
 
 from chatbot.application.graph import build_graph
 from chatbot.application.parser import ProductMarkerParser
+from chatbot.application.relevance import _PRODUCTS_TAG_RE
 from chatbot.domain import ChatbotState, Product, EmbeddingService, ProductRepository
 from chatbot.tools import build_tools
 
@@ -96,7 +97,8 @@ class ChatbotService:
         """Stream text tokens and product recommendations in real-time.
 
         Text is streamed as it arrives from the LLM. When the LLM outputs a
-        <products/> marker, the parser injects the actual products from state.
+        <products ids="..."/> marker, the parser filters products by the
+        specified IDs and emits them.
 
         Yields:
             Dict with keys:
@@ -140,15 +142,22 @@ class ChatbotService:
                 if not message_id:
                     message_id = metadata.get("run_id") or getattr(msg, "id", None)
 
-                # Create parser with products on first content from process_recommendations
-                if parser is None:
-                    # Get current state to access recommendations
+                # Create parser only when process_recommendations content arrives.
+                # Read the full product list from state — the parser filters
+                # by IDs in the tag since additional_kwargs isn't available
+                # during streaming.
+                if parser is None and node_name == "process_recommendations":
                     current_state = await self._app.aget_state(config)
                     recommendations = current_state.values.get("recommendations", [])
                     parser = ProductMarkerParser(products=recommendations)
 
-                for event in parser.feed(msg.content):
-                    yield self._make_stream_event(event, message_id, chat_id)
+                if parser is not None:
+                    for event in parser.feed(msg.content):
+                        yield self._make_stream_event(event, message_id, chat_id)
+                else:
+                    yield self._make_stream_event(
+                        {"type": "text", "content": msg.content}, message_id, chat_id
+                    )
 
         # Flush any remaining buffered content
         if parser is not None:
@@ -199,16 +208,17 @@ class ChatbotService:
     def _format_messages(self, messages: List[BaseMessage]) -> List[Dict[str, Any]]:
         """Format message history for API responses.
 
-        Removes <products/> markers from AI messages and includes products from
-        the message's additional_kwargs as separate ui_data entries.
+        Removes <products ids="..."/> markers from AI messages and includes
+        filtered products from the message's additional_kwargs as separate
+        ui_data entries.
         """
         formatted: List[Dict[str, Any]] = []
 
         for msg in messages:
             if isinstance(msg, AIMessage) and not msg.tool_calls:
                 msg_id = getattr(msg, "id", None)
-                # Remove the <products/> marker from text
-                text = msg.content.replace("<products/>", "").strip()
+                # Remove the <products ids="..."/> marker from text
+                text = _PRODUCTS_TAG_RE.sub("", msg.content).strip()
 
                 # Get recommendations stored on this specific message
                 recommendations = msg.additional_kwargs.get("recommendations", [])
