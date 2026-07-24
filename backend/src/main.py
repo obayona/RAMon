@@ -17,9 +17,10 @@ from chatbot import ChatbotBuilder
 from chatbot.adapters import PostgresProductRepository
 
 from src.adapters import PostgresProductCatalog
+from src.adapters.chat_repository import ChatRepository
 from src.adapters.sync_queue import PostgresSyncEnqueuer
 from src.api.middleware import RequestIDMiddleware
-from src.api.routes import chat_router, root_router, sync_router, websocket_router
+from src.api.routes import chat_router, chats_router, root_router, sync_router, websocket_router
 from src.core.config import ConfigError, config, load_settings
 from src.core.logging import configure_logging
 from src.infrastructure.database import create_db_pool
@@ -71,6 +72,7 @@ async def lifespan(app: FastAPI):
         .build()
     )
     app.state.product_catalog = PostgresProductCatalog(db_pool)
+    app.state.chat_repository = ChatRepository(db_pool)
     app.state.sync_enqueuer = PostgresSyncEnqueuer(db_pool)
     app.state.auth_config = config("auth")
     log.info("services.built")
@@ -97,6 +99,7 @@ def create_app() -> FastAPI:
     # Register routers
     app.include_router(root_router)
     app.include_router(chat_router)
+    app.include_router(chats_router)
     app.include_router(sync_router)
     app.include_router(websocket_router)
 

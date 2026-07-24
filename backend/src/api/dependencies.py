@@ -12,6 +12,7 @@ from __future__ import annotations
 from fastapi import Request, WebSocket
 
 from chatbot import ChatbotService
+from src.adapters.chat_repository import ChatRepository
 from src.core.config.auth import AuthConfig
 from src.domain.ports import ProductCatalog
 from src.domain.sync import SyncEnqueuer
@@ -66,3 +67,10 @@ def get_product_catalog_ws(ws: WebSocket) -> ProductCatalog:
 def get_sync_enqueuer(request: Request) -> SyncEnqueuer:
     """Get sync enqueuer from HTTP request."""
     return _get_state_attr(request, "sync_enqueuer")
+
+
+# --- Chat Repository ---
+
+def get_chat_repository(request: Request) -> ChatRepository:
+    """Get chat repository from HTTP request."""
+    return _get_state_attr(request, "chat_repository")
