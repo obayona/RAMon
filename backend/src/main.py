@@ -17,7 +17,7 @@ from chatbot import ChatbotBuilder
 from chatbot.adapters import PostgresProductRepository
 
 from src.adapters import PostgresProductCatalog
-from src.adapters.chat_repository import ChatRepository
+from src.adapters import ChatRepository
 from src.adapters.sync_queue import PostgresSyncEnqueuer
 from src.api.middleware import RequestIDMiddleware
 from src.api.routes import chat_router, chats_router, root_router, sync_router, websocket_router

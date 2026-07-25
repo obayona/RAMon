@@ -12,6 +12,7 @@ use Ramon\Chatbot\Adapters\WpOptionStore;
 use Ramon\Chatbot\Adapters\WpProductQuery;
 use Ramon\Chatbot\Adapters\WpSiteIterator;
 use Ramon\Chatbot\Adapters\WpTransientStore;
+use Ramon\Chatbot\Admin\ChatsPage;
 use Ramon\Chatbot\Admin\Menu;
 use Ramon\Chatbot\Admin\SettingsPage;
 use Ramon\Chatbot\Admin\SyncPage;
@@ -67,7 +68,8 @@ final class Plugin
         // Admin
         $settingsPage = new SettingsPage($this->options);
         $syncPage = new SyncPage($this->options, $this->initialSync);
-        $this->menu = new Menu($settingsPage, $syncPage);
+        $chatsPage = new ChatsPage($this->options, $this->jwt);
+        $this->menu = new Menu($settingsPage, $syncPage, $chatsPage);
 
         // Register hooks
         $this->registerLifecycleHooks();

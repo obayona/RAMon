@@ -21,7 +21,8 @@ class ChatRepository:
                 "SELECT DISTINCT thread_id, "
                 "       checkpoint->>'ts' AS created_at "
                 "FROM checkpoints "
-                "ORDER BY (checkpoint->>'ts') DESC",
+                "ORDER BY (checkpoint->>'ts') DESC "
+                "LIMIT 30"
             )
             rows = await cursor.fetchall()
             return [
