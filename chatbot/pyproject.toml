@@ -28,6 +28,7 @@ dev = [
     "pygraphviz",
     "pytest>=8.0",
     "ruff>=0.8",
+    "tiktoken>=0.7",
 ]
 
 [tool.setuptools.packages.find]
