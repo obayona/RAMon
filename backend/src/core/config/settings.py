@@ -11,6 +11,7 @@ Usage::
     model = config("app.openai_model")
     level = config("logging.level")
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -67,9 +68,7 @@ def config(dotpath: str = "") -> Settings | object:
         config("auth.app_key")          # → "secret"
     """
     if _settings is None:
-        raise RuntimeError(
-            "Settings not loaded. Call load_settings() during application startup."
-        )
+        raise RuntimeError("Settings not loaded. Call load_settings() during application startup.")
     if not dotpath:
         return _settings
 

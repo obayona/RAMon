@@ -1,4 +1,5 @@
 """Unit tests for src.core.logging._LoggerNameFilter."""
+
 import logging
 
 from src.core.logging import _LoggerNameFilter

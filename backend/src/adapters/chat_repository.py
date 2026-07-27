@@ -1,4 +1,5 @@
 """PostgreSQL implementation of chat listing from LangGraph checkpoints."""
+
 from typing import Any
 
 from psycopg_pool import AsyncConnectionPool
@@ -26,6 +27,5 @@ class ChatRepository:
             )
             rows = await cursor.fetchall()
             return [
-                {"thread_id": row["thread_id"], "created_at": row["created_at"]}
-                for row in rows
+                {"thread_id": row["thread_id"], "created_at": row["created_at"]} for row in rows
             ]

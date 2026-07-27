@@ -1,4 +1,5 @@
 """Unit tests for src.api.auth — JWT and Basic Auth utilities."""
+
 import pytest
 
 from src.api.auth import (
@@ -14,6 +15,7 @@ from src.core.config.auth import AuthConfig
 # ---------------------------------------------------------------------------
 # generate_jwt + validate_jwt round-trip
 # ---------------------------------------------------------------------------
+
 
 class TestJWT:
     def test_round_trip(self) -> None:
@@ -50,6 +52,7 @@ class TestJWT:
 # ---------------------------------------------------------------------------
 # verify_basic_auth
 # ---------------------------------------------------------------------------
+
 
 class TestVerifyBasicAuth:
     def _make_config(self) -> AuthConfig:

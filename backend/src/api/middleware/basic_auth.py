@@ -1,4 +1,5 @@
 """HTTP Basic Authentication dependency."""
+
 from __future__ import annotations
 
 import base64

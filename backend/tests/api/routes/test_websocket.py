@@ -1,4 +1,5 @@
 """Unit tests for src.api.routes.websocket.ChatMessage."""
+
 from src.api.routes.websocket import ChatMessage
 
 

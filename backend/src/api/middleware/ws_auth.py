@@ -1,4 +1,5 @@
 """WebSocket JWT authentication dependency."""
+
 from __future__ import annotations
 
 from fastapi import WebSocket, WebSocketException

@@ -1,4 +1,5 @@
 """Root route for serving the demo UI."""
+
 from pathlib import Path
 
 from fastapi import APIRouter, Depends
@@ -24,7 +25,7 @@ async def health_check() -> JSONResponse:
 @router.get("/")
 async def root(auth_config: AuthConfig = Depends(require_basic_auth)) -> HTMLResponse:
     """Serve the demo UI with an embedded JWT token.
-    
+
     Requires HTTP Basic Authentication. The browser will prompt for
     username and password. Upon successful authentication, a JWT token
     is generated and embedded into the HTML response for use by the

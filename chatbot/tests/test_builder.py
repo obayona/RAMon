@@ -1,4 +1,5 @@
 """Unit tests for chatbot.builder — validation logic."""
+
 import pytest
 
 from chatbot.builder import ChatbotBuilder, OpenAIConfig
@@ -35,11 +36,7 @@ class TestChatbotBuilderValidation:
             builder.build()
 
     def test_missing_repository_raises(self) -> None:
-        builder = (
-            ChatbotBuilder()
-            .with_openai(api_key="sk-test")
-            .with_tavily(api_key="tvly-test")
-        )
+        builder = ChatbotBuilder().with_openai(api_key="sk-test").with_tavily(api_key="tvly-test")
         with pytest.raises(ValueError, match="Product repository is required"):
             builder.build()
 
@@ -63,8 +60,7 @@ class TestChatbotBuilderChaining:
     def test_chain_all_returns_self(self) -> None:
         builder = ChatbotBuilder()
         result = (
-            builder
-            .with_openai(api_key="sk-test")
+            builder.with_openai(api_key="sk-test")
             .with_tavily(api_key="tvly-test")
             .with_product_repository(object())
         )

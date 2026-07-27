@@ -1,4 +1,5 @@
 """Unit tests for src.core.config.settings — Settings and config()."""
+
 import pytest
 
 from src.core.config.app import AppConfig
@@ -22,6 +23,7 @@ _VALID_ENV = {
 class TestSettings:
     def test_from_env(self) -> None:
         import os
+
         saved = {k: os.environ.get(k) for k in _VALID_ENV}
         try:
             os.environ.update(_VALID_ENV)
@@ -48,6 +50,7 @@ class TestSettings:
 class TestConfigAccessor:
     def test_no_args_returns_settings(self) -> None:
         import src.core.config.settings as mod
+
         old = mod._settings
         try:
             app = AppConfig.from_env(_VALID_ENV)
@@ -60,6 +63,7 @@ class TestConfigAccessor:
 
     def test_dotpath_returns_value(self) -> None:
         import src.core.config.settings as mod
+
         old = mod._settings
         try:
             app = AppConfig.from_env(_VALID_ENV)
@@ -72,6 +76,7 @@ class TestConfigAccessor:
 
     def test_before_load_raises(self) -> None:
         import src.core.config.settings as mod
+
         old = mod._settings
         try:
             mod._settings = None
@@ -82,6 +87,7 @@ class TestConfigAccessor:
 
     def test_invalid_dotpath_raises(self) -> None:
         import src.core.config.settings as mod
+
         old = mod._settings
         try:
             app = AppConfig.from_env(_VALID_ENV)

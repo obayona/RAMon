@@ -1,4 +1,5 @@
 """Utility functions for graph visualization."""
+
 from pathlib import Path
 from typing import Union
 

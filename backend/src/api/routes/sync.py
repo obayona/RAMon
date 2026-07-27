@@ -3,6 +3,7 @@
 The endpoint enqueues changes into the sync_queue table and returns instantly.
 A background worker processes the queue independently.
 """
+
 from __future__ import annotations
 
 from typing import List, Optional

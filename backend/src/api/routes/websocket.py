@@ -1,4 +1,5 @@
 """WebSocket route for real-time chat."""
+
 from __future__ import annotations
 
 import json

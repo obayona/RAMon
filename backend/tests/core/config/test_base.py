@@ -1,4 +1,5 @@
 """Unit tests for src.core.config._base — require(), build_database_url()."""
+
 import pytest
 
 from src.core.config._base import ConfigError, build_database_url, require
@@ -7,6 +8,7 @@ from src.core.config._base import ConfigError, build_database_url, require
 # ---------------------------------------------------------------------------
 # require()
 # ---------------------------------------------------------------------------
+
 
 class TestRequire:
     def test_returns_stripped_value(self) -> None:
@@ -32,6 +34,7 @@ class TestRequire:
 # ---------------------------------------------------------------------------
 # build_database_url()
 # ---------------------------------------------------------------------------
+
 
 class TestBuildDatabaseUrl:
     def test_existing_database_url_used_directly(self) -> None:

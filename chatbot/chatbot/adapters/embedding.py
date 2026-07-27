@@ -1,4 +1,5 @@
 """OpenAI embedding service implementation."""
+
 from typing import List
 
 from openai import OpenAI
@@ -11,7 +12,7 @@ class OpenAIEmbeddingService:
 
     def __init__(self, client: OpenAI, model: str = "text-embedding-3-small") -> None:
         """Initialize the embedding service.
-        
+
         Args:
             client: OpenAI client instance.
             model: The embedding model to use.
@@ -21,7 +22,7 @@ class OpenAIEmbeddingService:
 
     async def embed(self, text: str) -> List[float]:
         """Generate an embedding vector for the given text.
-        
+
         Note: This uses the synchronous OpenAI client but is called from async code.
         For high-throughput scenarios, consider using AsyncOpenAI.
         """

@@ -1,4 +1,5 @@
 """Chatbot service providing the main API for chat interactions."""
+
 from __future__ import annotations
 
 from typing import Any, AsyncGenerator, Dict, List, Optional
@@ -60,9 +61,8 @@ class ChatbotService:
             tavily_client=self._tavily_client,
         )
 
-        self._app: CompiledStateGraph = (
-            build_graph(self._model, self._tools)
-            .compile(checkpointer=checkpointer)
+        self._app: CompiledStateGraph = build_graph(self._model, self._tools).compile(
+            checkpointer=checkpointer
         )
 
     # ------------------------------------------------------------------

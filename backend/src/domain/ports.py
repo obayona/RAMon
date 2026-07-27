@@ -3,6 +3,7 @@
 These protocols define the contracts that adapters must implement,
 allowing the domain layer to remain independent of infrastructure details.
 """
+
 from typing import Optional, Protocol, runtime_checkable
 
 from src.domain.models import Product
@@ -14,10 +15,10 @@ class ProductCatalog(Protocol):
 
     async def get_product(self, product_id: str) -> Optional[Product]:
         """Retrieve a product by its ID.
-        
+
         Args:
             product_id: The unique product identifier.
-            
+
         Returns:
             The product if found, None otherwise.
         """

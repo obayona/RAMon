@@ -5,6 +5,7 @@ Provides a single ``configure_logging()`` entry-point that sets up both
 ``structlog.get_logger()`` but never call ``configure`` themselves — only
 the host application does.
 """
+
 from __future__ import annotations
 
 import logging
@@ -73,12 +74,8 @@ def configure_logging(
     if log_dir is not None:
         log_path = Path(log_dir)
 
-        api_handler = _file_handler(
-            log_path / "api.log", formatter, numeric_level
-        )
-        worker_handler = _file_handler(
-            log_path / "worker.log", formatter, numeric_level
-        )
+        api_handler = _file_handler(log_path / "api.log", formatter, numeric_level)
+        worker_handler = _file_handler(log_path / "worker.log", formatter, numeric_level)
         root.addHandler(api_handler)
 
         # Route worker logs to the worker file via a filter
@@ -121,6 +118,4 @@ class _LoggerNameFilter(logging.Filter):
         self._prefix = prefix
 
     def filter(self, record: logging.LogRecord) -> bool:
-        return record.name == self._prefix or record.name.startswith(
-            self._prefix + "."
-        )
+        return record.name == self._prefix or record.name.startswith(self._prefix + ".")

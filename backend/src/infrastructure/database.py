@@ -1,4 +1,5 @@
 """Database connection setup and configuration."""
+
 from pgvector.psycopg import register_vector_async
 from psycopg_pool import AsyncConnectionPool
 from psycopg.rows import dict_row
@@ -11,12 +12,12 @@ async def _configure_pgvector(conn) -> None:
 
 def create_db_pool(database_url: str, min_size: int = 2, max_size: int = 10) -> AsyncConnectionPool:
     """Create an async connection pool for PostgreSQL.
-    
+
     Args:
         database_url: PostgreSQL connection string.
         min_size: Minimum number of connections in the pool.
         max_size: Maximum number of connections in the pool.
-        
+
     Returns:
         An AsyncConnectionPool instance (not yet opened).
     """

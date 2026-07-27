@@ -1,4 +1,5 @@
 """Chat history API route."""
+
 from fastapi import APIRouter, Depends, HTTPException
 
 from chatbot import ChatbotService, ChatNotFoundError

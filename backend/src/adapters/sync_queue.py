@@ -1,4 +1,5 @@
 """PostgreSQL sync queue enqueuer for the API."""
+
 from __future__ import annotations
 
 import json

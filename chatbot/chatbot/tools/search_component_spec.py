@@ -41,4 +41,5 @@ def make_search_component_spec(tavily_client: TavilySearch):
                 f"- GPU: PCIe version, physical dimensions, power connector\n"
                 f"Always consult the manufacturer's official page for definitive specs."
             )
+
     return search_component_spec

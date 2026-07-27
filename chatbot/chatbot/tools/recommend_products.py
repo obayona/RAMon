@@ -1,4 +1,5 @@
 """Product recommendation tool using semantic search."""
+
 from __future__ import annotations
 
 from typing import Annotated, Optional
@@ -58,7 +59,9 @@ def make_recommend_products(
         # Minimal ToolMessage with just IDs to save tokens
         # Full product data is in state and will be in the final AI response
         product_ids = [p.get("id") or p.get("product_id") for p in products]
-        tool_content = f"Found {len(products)} products: {product_ids}" if products else "No products found"
+        tool_content = (
+            f"Found {len(products)} products: {product_ids}" if products else "No products found"
+        )
 
         # Update state with query and recommendations
         # Routing is handled by conditional edge in graph based on product_query
@@ -66,9 +69,7 @@ def make_recommend_products(
             update={
                 "product_query": query,
                 "recommendations": products,
-                "messages": [
-                    ToolMessage(content=tool_content, tool_call_id=tool_call_id)
-                ],
+                "messages": [ToolMessage(content=tool_content, tool_call_id=tool_call_id)],
             },
         )
 

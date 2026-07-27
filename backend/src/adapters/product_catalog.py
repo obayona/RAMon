@@ -1,4 +1,5 @@
 """PostgreSQL implementation of the ProductCatalog port."""
+
 from typing import Optional
 
 from psycopg_pool import AsyncConnectionPool

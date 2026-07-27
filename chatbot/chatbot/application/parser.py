@@ -1,4 +1,5 @@
 """Streaming parser for extracting product markers from LLM output."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -65,7 +66,7 @@ class ProductMarkerParser:
                 relevant_ids = parse_relevant_ids(match.group(0))
                 filtered = filter_by_ids(self.products, relevant_ids)
                 events.append({"type": "products", "data": filtered})
-                self._buffer = self._buffer[match.end():]
+                self._buffer = self._buffer[match.end() :]
             else:
                 # No complete tag found — hold back from last '<' to avoid
                 # splitting a partial tag across chunks

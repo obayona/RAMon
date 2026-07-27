@@ -5,6 +5,7 @@ a ``contextvars.ContextVar`` so that ``structlog``'s ``merge_contextvars``
 processor includes it in every log record.  The ID is also returned as the
 ``X-Request-ID`` response header so clients can correlate logs.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -18,9 +19,7 @@ from starlette.responses import Response
 class RequestIDMiddleware(BaseHTTPMiddleware):
     """Attach a unique request ID to every HTTP request."""
 
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         req_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
         structlog.contextvars.bind_contextvars(request_id=req_id)
         try:

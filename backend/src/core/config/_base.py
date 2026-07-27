@@ -4,6 +4,7 @@ Shared helpers used by all config dataclasses: the ``ConfigError`` exception,
 a ``require()`` helper for mandatory env vars, and a ``_build_database_url()``
 utility.
 """
+
 from __future__ import annotations
 
 
@@ -44,8 +45,7 @@ def build_database_url(data: dict[str, str]) -> str:
     missing = [k for k in required_keys if not data.get(k, "").strip()]
     if missing:
         raise ConfigError(
-            f"Either DATABASE_URL or all of {required_keys} must be set. "
-            f"Missing: {missing}"
+            f"Either DATABASE_URL or all of {required_keys} must be set. Missing: {missing}"
         )
 
     return (

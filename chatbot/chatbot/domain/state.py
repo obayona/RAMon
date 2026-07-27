@@ -1,4 +1,5 @@
 """Chatbot state definitions for LangGraph workflow."""
+
 from typing import Annotated, List, Optional, TypedDict
 
 from langgraph.graph.message import add_messages

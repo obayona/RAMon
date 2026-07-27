@@ -1,4 +1,5 @@
 """Unit tests for src.core.config.logging — LoggingConfig.from_env()."""
+
 import pytest
 
 from src.core.config.logging import LoggingConfig

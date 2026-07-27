@@ -1,4 +1,5 @@
 """Product relevance filtering based on LLM-judged IDs."""
+
 from __future__ import annotations
 
 import re
@@ -25,9 +26,7 @@ def parse_relevant_ids(tag_content: str) -> set[int]:
     return {int(pid.strip()) for pid in raw.split(",") if pid.strip()}
 
 
-def filter_by_ids(
-    products: List[Dict[str, Any]], relevant_ids: set[int]
-) -> List[Dict[str, Any]]:
+def filter_by_ids(products: List[Dict[str, Any]], relevant_ids: set[int]) -> List[Dict[str, Any]]:
     """Filter a product list to only those whose IDs are in the relevant set.
 
     Args:

@@ -1,4 +1,5 @@
 """Unit tests for chatbot.application.relevance — pure filtering logic."""
+
 from chatbot.application.relevance import (
     filter_by_ids,
     filter_products_from_response,
@@ -9,6 +10,7 @@ from chatbot.application.relevance import (
 # ---------------------------------------------------------------------------
 # parse_relevant_ids
 # ---------------------------------------------------------------------------
+
 
 class TestParseRelevantIds:
     def test_single_id(self) -> None:
@@ -33,7 +35,7 @@ class TestParseRelevantIds:
         assert parse_relevant_ids('<products ids="   "/>') == set()
 
     def test_surrounding_text_ignored(self) -> None:
-        result = parse_relevant_ids("before <products ids=\"5\"/> after")
+        result = parse_relevant_ids('before <products ids="5"/> after')
         assert result == {5}
 
     def test_large_ids(self) -> None:
@@ -50,6 +52,7 @@ class TestParseRelevantIds:
 # ---------------------------------------------------------------------------
 # filter_by_ids
 # ---------------------------------------------------------------------------
+
 
 class TestFilterByIds:
     def test_filters_matching_ids(self) -> None:
@@ -93,6 +96,7 @@ class TestFilterByIds:
 # filter_products_from_response
 # ---------------------------------------------------------------------------
 
+
 class TestFilterProductsFromResponse:
     def test_extracts_and_filters(self) -> None:
         products = [
@@ -100,7 +104,7 @@ class TestFilterProductsFromResponse:
             {"id": 2, "name": "Mouse"},
             {"id": 3, "name": "Keyboard"},
         ]
-        response = "Here is a laptop: <products ids=\"1,3\"/>"
+        response = 'Here is a laptop: <products ids="1,3"/>'
         result = filter_products_from_response(products, response)
         assert len(result) == 2
         assert result[0]["name"] == "Laptop"

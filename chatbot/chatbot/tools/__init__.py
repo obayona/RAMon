@@ -1,4 +1,5 @@
 """Tools module for chatbot functionality."""
+
 from typing import List
 
 from langchain_core.tools import BaseTool
@@ -15,12 +16,12 @@ def build_tools(
     tavily_client: TavilySearch,
 ) -> List[BaseTool]:
     """Instantiate all tools with their runtime dependencies.
-    
+
     Args:
         embedding_service: Service for generating text embeddings.
         product_repository: Repository for product data access.
         tavily_client: Tavily client for web search.
-        
+
     Returns:
         List of configured tools.
     """

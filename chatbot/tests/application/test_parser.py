@@ -1,4 +1,5 @@
 """Unit tests for chatbot.application.parser — streaming product marker parser."""
+
 from chatbot.application.parser import ProductMarkerParser
 
 
@@ -111,9 +112,7 @@ class TestProductMarkerParserStreaming:
             all_events.extend(parser.feed(chunk))
         all_events.extend(parser.flush())
 
-        text_content = "".join(
-            e["content"] for e in all_events if e["type"] == "text"
-        )
+        text_content = "".join(e["content"] for e in all_events if e["type"] == "text")
         product_events = [e for e in all_events if e["type"] == "products"]
 
         assert "I recommend the " in text_content
@@ -126,9 +125,9 @@ class TestProductMarkerParserStreaming:
         all_events = []
 
         # Split the tag across 4 chunks
-        all_events.extend(parser.feed('Start <prod'))
+        all_events.extend(parser.feed("Start <prod"))
         all_events.extend(parser.feed('ucts ids="'))
-        all_events.extend(parser.feed('1'))
+        all_events.extend(parser.feed("1"))
         all_events.extend(parser.feed('"/> End'))
         all_events.extend(parser.flush())
 

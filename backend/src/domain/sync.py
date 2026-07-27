@@ -1,4 +1,5 @@
 """Port interface for enqueuing product sync changes."""
+
 from __future__ import annotations
 
 from typing import Any, Dict, List, Protocol, runtime_checkable

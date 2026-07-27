@@ -1,4 +1,5 @@
 """Domain models representing core business entities."""
+
 from typing import TypedDict
 
 

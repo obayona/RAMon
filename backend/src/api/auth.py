@@ -3,6 +3,7 @@
 This module provides functions for generating and validating JWT tokens,
 as well as verifying HTTP Basic Authentication credentials.
 """
+
 from __future__ import annotations
 
 import secrets
@@ -24,11 +25,11 @@ class JWTExpiredError(JWTValidationError):
 
 def generate_jwt(secret_key: str, expires_in_hours: int = 24) -> str:
     """Generate a JWT token.
-    
+
     Args:
         secret_key: The secret key used to sign the token.
         expires_in_hours: Token expiration time in hours (default: 24).
-        
+
     Returns:
         The encoded JWT token string.
     """
@@ -42,14 +43,14 @@ def generate_jwt(secret_key: str, expires_in_hours: int = 24) -> str:
 
 def validate_jwt(token: str, secret_key: str) -> dict:
     """Validate a JWT token and return its payload.
-    
+
     Args:
         token: The JWT token to validate.
         secret_key: The secret key used to decode the token.
-        
+
     Returns:
         The decoded token payload.
-        
+
     Raises:
         JWTExpiredError: If the token has expired.
         JWTValidationError: If the token is invalid.
@@ -65,14 +66,14 @@ def validate_jwt(token: str, secret_key: str) -> dict:
 
 def verify_basic_auth(username: str, password: str, config: AuthConfig) -> bool:
     """Verify basic authentication credentials.
-    
+
     Uses constant-time comparison to prevent timing attacks.
-    
+
     Args:
         username: The provided username.
         password: The provided password.
         config: The authentication config containing valid credentials.
-        
+
     Returns:
         True if credentials are valid, False otherwise.
     """

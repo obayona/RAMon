@@ -1,4 +1,5 @@
 """Unit tests for pure functions in chatbot.application.graph."""
+
 from langchain_core.messages import AIMessage
 
 from chatbot.application.graph import (
@@ -12,6 +13,7 @@ from chatbot.application.graph import (
 # ---------------------------------------------------------------------------
 # _build_system_message
 # ---------------------------------------------------------------------------
+
 
 class TestBuildSystemMessage:
     def test_no_product(self) -> None:
@@ -46,11 +48,13 @@ class TestBuildSystemMessage:
 # _should_continue
 # ---------------------------------------------------------------------------
 
+
 class TestShouldContinue:
     def test_message_with_tool_calls(self) -> None:
-        msg = AIMessage(content="", tool_calls=[
-            {"name": "recommend_products", "args": {"query": "laptop"}, "id": "1"}
-        ])
+        msg = AIMessage(
+            content="",
+            tool_calls=[{"name": "recommend_products", "args": {"query": "laptop"}, "id": "1"}],
+        )
         state = {"messages": [msg]}
         assert _should_continue(state) == "tools"
 
@@ -65,9 +69,7 @@ class TestShouldContinue:
         assert _should_continue(state) == "__end__"
 
     def test_multiple_messages_uses_last(self) -> None:
-        msg1 = AIMessage(content="", tool_calls=[
-            {"name": "tool", "args": {}, "id": "1"}
-        ])
+        msg1 = AIMessage(content="", tool_calls=[{"name": "tool", "args": {}, "id": "1"}])
         msg2 = AIMessage(content="Done")
         state = {"messages": [msg1, msg2]}
         assert _should_continue(state) == "__end__"
@@ -76,6 +78,7 @@ class TestShouldContinue:
 # ---------------------------------------------------------------------------
 # _route_after_tools
 # ---------------------------------------------------------------------------
+
 
 class TestRouteAfterTools:
     def test_routes_to_recommendations_when_query_present(self) -> None:

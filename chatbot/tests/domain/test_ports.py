@@ -1,4 +1,5 @@
 """Unit tests for domain ports — runtime_checkable Protocol checks."""
+
 from chatbot.domain.ports import EmbeddingService, ProductRepository
 
 
@@ -29,6 +30,7 @@ class TestEmbeddingServiceProtocol:
     def test_class_with_missing_method_fails(self) -> None:
         class NoMethod:
             pass
+
         assert not isinstance(NoMethod(), EmbeddingService)
 
 
@@ -42,4 +44,5 @@ class TestProductRepositoryProtocol:
     def test_incomplete_implementation_fails(self) -> None:
         class Incomplete:
             pass
+
         assert not isinstance(Incomplete(), ProductRepository)

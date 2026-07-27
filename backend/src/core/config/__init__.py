@@ -14,6 +14,7 @@ Usage::
     config("app.openai_model")          # dot-notation
     config().app.openai_model           # attribute access
 """
+
 from src.core.config._base import ConfigError
 from src.core.config.app import AppConfig
 from src.core.config.auth import AuthConfig

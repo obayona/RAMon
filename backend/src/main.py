@@ -3,6 +3,7 @@
 This module defines the FastAPI application with clean architecture,
 wiring together all layers: core, domain, adapters, API, and infrastructure.
 """
+
 from __future__ import annotations
 
 import structlog

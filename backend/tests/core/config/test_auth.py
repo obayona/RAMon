@@ -1,4 +1,5 @@
 """Unit tests for src.core.config.auth — AuthConfig.from_env()."""
+
 import pytest
 
 from src.core.config._base import ConfigError

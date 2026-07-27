@@ -1,4 +1,5 @@
 """PostgreSQL product repository implementation using pgvector."""
+
 from typing import List, Optional
 
 import structlog
@@ -15,7 +16,7 @@ class PostgresProductRepository:
 
     def __init__(self, pool: AsyncConnectionPool) -> None:
         """Initialize the repository.
-        
+
         Args:
             pool: Async connection pool for PostgreSQL.
         """

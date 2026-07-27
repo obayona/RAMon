@@ -1,4 +1,5 @@
 """Chat listing API route."""
+
 from fastapi import APIRouter, Depends
 
 from src.adapters.chat_repository import ChatRepository

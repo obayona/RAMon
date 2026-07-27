@@ -1,4 +1,5 @@
 """LangGraph workflow for the RAMon chatbot."""
+
 from __future__ import annotations
 
 import json
@@ -21,12 +22,12 @@ SYSTEM_PROMPT = (
     "You help customers find products and answer hardware compatibility questions.\n\n"
     "Rules:\n"
     "1. Always respond in the same language the user writes in.\n"
-    "2. If the user asks about compatibility with their own hardware (e.g. \"will this work "
-    "with my motherboard X\"), look at the current_product context if available and use "
+    '2. If the user asks about compatibility with their own hardware (e.g. "will this work '
+    'with my motherboard X"), look at the current_product context if available and use '
     "search_component_spec to fetch specs for the user's external component.\n"
     "3. If the user wants product recommendations, refine the query into precise technical "
-    "terms in the same language. For example, \"celulares baratos\" becomes \"telefono movil "
-    "gama baja\", NOT \"smartphone\". Do NOT translate to another language. "
+    'terms in the same language. For example, "celulares baratos" becomes "telefono movil '
+    'gama baja", NOT "smartphone". Do NOT translate to another language. '
     "Extract budget constraints from the query and pass them as min_price / max_price.\n"
     "4. If the question is general or you already have enough facts, answer directly without "
     "calling tools.\n"
@@ -67,7 +68,6 @@ User query: {original_query}
 Refined query: {query}
 Products: {products}
 Response:"""
-
 
 
 def _build_system_message(product: Product | None = None) -> str:
@@ -205,9 +205,7 @@ def build_graph(model: ChatOpenAI, tools: List[BaseTool]) -> StateGraph:
 
     # Edges
     graph.add_edge(START, "chatbot")
-    graph.add_conditional_edges(
-        "chatbot", _should_continue, {END: END, "tools": "tools"}
-    )
+    graph.add_conditional_edges("chatbot", _should_continue, {END: END, "tools": "tools"})
     # Route based on whether recommend_products was called (sets product_query)
     graph.add_conditional_edges(
         "tools",

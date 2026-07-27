@@ -7,6 +7,7 @@ Note: We need separate functions for Request and WebSocket because FastAPI's
 dependency injection uses type hints to determine how to inject parameters.
 Using Union[Request, WebSocket] doesn't work with FastAPI's DI system.
 """
+
 from __future__ import annotations
 
 from fastapi import Request, WebSocket
@@ -28,6 +29,7 @@ def _get_state_attr(scope: Request | WebSocket, attribute: str):
 
 # --- Auth Config ---
 
+
 def get_auth_config(request: Request) -> AuthConfig:
     """Get auth config from HTTP request."""
     return _get_state_attr(request, "auth_config")
@@ -39,6 +41,7 @@ def get_auth_config_ws(ws: WebSocket) -> AuthConfig:
 
 
 # --- Chatbot Service ---
+
 
 def get_chatbot_service(request: Request) -> ChatbotService:
     """Get chatbot service from HTTP request."""
@@ -52,6 +55,7 @@ def get_chatbot_service_ws(ws: WebSocket) -> ChatbotService:
 
 # --- Product Catalog ---
 
+
 def get_product_catalog(request: Request) -> ProductCatalog:
     """Get product catalog from HTTP request."""
     return _get_state_attr(request, "product_catalog")
@@ -64,12 +68,14 @@ def get_product_catalog_ws(ws: WebSocket) -> ProductCatalog:
 
 # --- Sync Enqueuer ---
 
+
 def get_sync_enqueuer(request: Request) -> SyncEnqueuer:
     """Get sync enqueuer from HTTP request."""
     return _get_state_attr(request, "sync_enqueuer")
 
 
 # --- Chat Repository ---
+
 
 def get_chat_repository(request: Request) -> ChatRepository:
     """Get chat repository from HTTP request."""
