@@ -1,0 +1,140 @@
+Test_ID,Category,User_Query,Conditions,Expected_Behavior,Expected_Format,Success_Criteria,Chatbot_Response,Tool_Calls,Recommendations,Judge_Verdict,Passed
+TEST_001,Disponibilidad (Happy Path),"Estoy buscando tarjetas SD, no importa el precio",,Mostrar una list con tarjetas sd,Texto con lista de productos.,"1. Muestra resultados relevantes (tarjetas SD). 2. Lista con al menos 2 productos, cada uno con nombre y precio visible.",Aquí tienes algunas tarjetas SD que se adaptan a tus necesidades:,"[ToolCall] recommend_products({'query': 'tarjetas SD'})
+[ToolResult] Found 3 products: [394, 391, 393]","1. MEMORIA MICRO SD HIKSEMI 128GB CLASE 10 - $29.99
+2. MEMORIA MICRO SD HIKSEMI 32GB CLASE 10 - $8.99
+3. MEMORIA MICRO SD HIKSEMI 16GB CLASE 10 - $7.99","VERDICT: PASS  
+JUSTIFICATION: The chatbot successfully provided a list of relevant SD cards, including the name and price for each product. It included three products, which meets the requirement of listing at least two products. The response aligns with the user's query for SD cards without any price restrictions.",PASS
+TEST_002,Falta de Stock (Edge Case),"Necesito comprar 3 monitores XTRATECH de 24""",,Revisar la BD y notar que el producto no esta disponible. Disculparse y no proceder con la venta.,Texto,"1. Indica claramente que el producto no esta en el inventario. 2. Tono cortés. 3. Optional, si recomienda otras opciones, se considera una buena practica",No encontramos monitores XTRATECH de 24 pulgadas en nuestro inventario. ¿Te gustaría que busque otros modelos de monitores?,"[ToolCall] recommend_products({'query': 'monitor XTRATECH 24 pulgadas', 'min_price': 0, 'max_price': None})
+[ToolResult] Found 3 products: [401, 430, 431]",,"VERDICT: PASS  
+JUSTIFICATION: The chatbot clearly states that the XTRATECH 24-inch monitors are not available in the inventory, which aligns with the expected behavior. It maintains a polite tone and offers to search for other monitor options, which is a good practice. Overall, the response meets the success criteria effectively.",PASS
+TEST_003,Compatibilidad Técnica (Happy Path),"Tengo un dispositivo wifi en un area remota, el EXTENSOR WIFI TPLINK AC 750 Mbps WALLPLUG me sirve?",,Confirmar que sí sirve,Texto,1. Responde que SÍ sirve. 2. Lo Justifica,"El extensor WiFi TP-Link AC 750 Mbps Wall Plug es adecuado para mejorar la señal en áreas remotas, ya que puede alcanzar velocidades de hasta 300 Mbps en la banda de 2.4 GHz y 433 Mbps en la banda de 5 GHz. Su diseño compacto facilita la instalación y el movimiento.
+
+Sin embargo, para asegurarte de que funcione correctamente en tu área remota, es importante que verifiques que la señal WiFi original que deseas extender sea lo suficientemente fuerte en el lugar donde planeas instalar el extensor. Si la señal original es débil, el extensor no podrá amplificarla efectivamente.","[ToolCall] search_component_spec({'component_model': 'EXTENSOR WIFI TPLINK AC 750 Mbps WALLPLUG'})
+[ToolResult] {
+  ""query"": ""EXTENSOR WIFI TPLINK AC 750 Mbps WALLPLUG technical specifications specs"",
+  ""follow_up_questions"": null,
+  ""answer"": null,
+  ""images"": [],
+  ""results"": [
+    {
+      ""url"": ""https://superarbor.io/products/tp-link-ac750-wi-fi-range-extender-wall-plug-adapter-in-white"",
+      ""title"": ""TP-LINK AC750 Wi-Fi Range Extender Wall Plug Adapter in White"",
+      ""content"": ""Key Features: Dual Band Speed: Achieve up to 300Mbps on 2.4GHz and 433Mbps on 5GHz for stable streaming. Intelligent Signal Light: Guides you to"",
+      ""score"": 0.81347597,
+      ""raw_content"": null
+    },
+    {
+      ""url"": ""https://www.tp-link.com/uk/document/71213"",
+      ""title"": ""AC750 Wi-Fi Range Extender - TP-Link"",
+      ""content"": ""\u00b7 Power Consumption: 6.5W. \u00b7 Dimensions (W \u00d7 D \u00d7 H):. 3.06 x 1.57 x 3.15 in. (77.8 x 40 x 80 mm). Wireless. \u00b7 Wireless Standards: IEEE 802.11a/n/ac 5GHz, IEEE."",
+      ""score"": 0.76427686,
+      ""raw_content"": null
+    },
+    {
+      ""url"": ""https://cdn.tvc.mx/media/1216162/TP-LINK-RE200-REPETIDOR-DE-WIFI-DOBLE-BANDA-AC750-FICHA-TECNICA-INGLES.pdf"",
+      ""title"": ""AC750 Wi-Fi Range Extender"",
+      ""content"": ""The AC750 Wi-Fi Range Extender \u2026 achieving speeds of 300Mbps on the 2.4GHz band and 433Mbps on the 5GHz band. Compact Wall-Plug Design\u2013 Easy to install and move"",
+      ""score"": 0.7445268,
+      ""raw_content"": null
+    }
+  ],
+  ""response_time"": 0.0,
+  ""request_id"": ""1e0851e3-8469-4187-8b0b-74e242e2d4eb""
+}",,"VERDICT: PASS  
+JUSTIFICATION: The chatbot confirms that the TP-Link AC 750 Mbps Wall Plug is suitable for extending WiFi in remote areas and provides justification by explaining its speed capabilities and the importance of having a strong original signal. This aligns with the expected behavior of confirming that the device is appropriate for the user's needs.",PASS
+TEST_004,Consulta Ambigua,Necesito una laptop,,pedir al usuario más detalles técnicos o precio para recomendar el correcto.,Texto,1. No lanza productos al azar. 2. Pregunta mas detalles,"¿Tienes algún requisito específico en mente, como el presupuesto, el tamaño de la pantalla, el uso (juegos, trabajo, etc.) o alguna marca preferida? Esto me ayudará a encontrar la mejor opción para ti.",,,"VERDICT: PASS  
+JUSTIFICATION: The chatbot response effectively asks for more details regarding the user's needs, such as budget, screen size, intended use, and brand preferences. This aligns with the expected behavior of gathering specific information to recommend the most suitable laptop, and it does not present random products.",PASS
+TEST_005,Presupuesto (Happy Path),Tengo 250 dólares. Necesito un celular. ¿Qué me ofreces?,,Recomendar celulares que cuesten menos o lo mismo que $250 y está en stock.,Texto con lista de productos.,1. Recomienda celulares. 2. Confirma que cuesta menos del presupuesto ($250).,Aquí tienes algunas opciones de celulares que se ajustan a tu presupuesto:,"[ToolCall] recommend_products({'query': 'telefono movil gama baja', 'max_price': 250})
+[ToolResult] Found 3 products: [455, 457, 425]","1. CELULAR HONOR X5C PLUS 6GB 256GB NEGRO - $234.99
+2. CELULAR INFINIX HOT 70 4GB+256GB Negro - $239.99","VERDICT: PASS  
+JUSTIFICATION: The chatbot successfully recommends two cell phones that are both priced below the user's budget of $250. The response includes a clear list of products with their prices, meeting the expected behavior and success criteria.",PASS
+TEST_006,"Contexto con producto actual, pregunta tecnica",¿Esta laptop me sirve para ejecutar el modelo local Gemma 4?,"{""current_product_id"": ""884""}",Leer el producto de la base de datos. Es suficiente que el chabot no afirme que la laptop si sirve para ese proposito,Texto,1. Responde que para ejecutar modelos locales se necesita un equipo con mejor procesador,"Para ejecutar el modelo Gemma 4 localmente, los requisitos de hardware varían según la versión del modelo. Aquí están los requisitos generales:
+
+1. **RAM**: 
+   - Mínimo de 4 GB para la versión más pequeña.
+   - Se recomienda al menos 32 GB para versiones más grandes, siendo 64 GB el punto óptimo para estabilidad.
+
+2. **GPU**: 
+   - Se recomienda una GPU con al menos 5 GB de VRAM para las versiones más pequeñas.
+   - Para versiones más grandes, se sugiere una GPU con 24 GB de VRAM, como la RTX 3090 o 4090.
+
+3. **CPU**: 
+   - Un procesador potente, como un AMD Ryzen 9 o Intel Core i9, es ideal para un rendimiento óptimo.
+
+La laptop HP CI3-100U que estás considerando tiene 8 GB de RAM y gráficos integrados de Intel, lo que puede no ser suficiente para ejecutar versiones más grandes de Gemma 4 de manera eficiente. Podría funcionar con la versión más pequeña, pero no se recomienda para un uso serio o intensivo.
+
+Si planeas trabajar con modelos más grandes o realizar tareas complejas, sería mejor considerar una máquina con más RAM y una GPU dedicada.","[ToolCall] search_component_spec({'component_model': 'Gemma 4 AI model system requirements'})
+[ToolResult] {
+  ""query"": ""Gemma 4 AI model system requirements technical specifications specs"",
+  ""follow_up_questions"": null,
+  ""answer"": null,
+  ""images"": [],
+  ""results"": [
+    {
+      ""url"": ""https://www.oflight.co.jp/en/columns/gemma4-hardware-requirements-local-ai-spec-2026"",
+      ""title"": ""Gemma 4 Requirements: VRAM, GPU & RAM by Model (2026) | Oflight Inc."",
+      ""content"": ""\u682a\u5f0f\u4f1a\u793e\u30aa\u30d6\u30e9\u30a4\u30c8\n\nAI2026-05-2521 min read\n\n# Gemma 4 Requirements: VRAM, GPU & RAM by Model (2026)\n\nGemma 4 needs 5GB VRAM (E2B/E4B), 16GB (26B MoE), or 24-62GB (31B Dense) depending on quantization. Requirements by model: RTX 3060 to H100, Apple Silicon M1-M4, CPU-only operation, RAM sizing, and budget builds. Updated July 2026.\n\nGemma 4\u30cf\u30fc\u30c9\u30a6\u30a7\u30a2GPUVRAM\u30ed\u30fc\u30ab\u30ebAI\u63a8\u5968\u30b9\u30da\u30c3\u30af\u30b7\u30b9\u30c6\u30e0\u8981\u4ef6\n\n## Gemma 4 System Requirements at a Glance (by model size) [...] Running Gemma 4 in a local environment requires appropriate RAM or VRAM depending on the model's parameter count and quantization level. Requirements range from a minimum of 5GB (E2B/E4B quantized) to a maximum of 80GB (31B FP16). Quantization is a technique that reduces memory usage while maintaining model accuracy. Ollama uses Q4\\_K\\_M (4-bit quantization) by default, reducing memory usage by approximately 55-60%. Using a GPU significantly improves inference speed but is not mandatory. [...] - Recommended Model: E4B (Q8), 26B MoE (Q4)  \n- Use Case: SMB AI adoption, development environment  \n  \nHigh-End Configuration ($4,000-6,000)  \n- CPU: AMD Ryzen 9 7950X / Intel Core i9-13900K  \n- RAM: 64GB DDR5  \n- GPU: RTX 4090 24GB / M3 Max 48GB  \n- Recommended Model: 26B MoE (Q8), 31B (Q4)  \n- Use Case: Enterprise AI, R&D  \n  \nEnterprise Configuration ($12,000+ / Cloud Recommended)  \n- CPU: AMD EPYC 7643 / Intel Xeon Gold 6348  \n- RAM: 256GB ECC"",
+      ""score"": 0.8588255,
+      ""raw_content"": null
+    },
+    {
+      ""url"": ""https://lmstudio.ai/models/gemma-4"",
+      ""title"": ""Gemma 4"",
+      ""content"": ""15.60 GB\n\ngoogle/gemma-4-31b-qat\n\n19.00 GB\n\ngoogle/gemma-4-e2b-qat\n\n4.20 GB\n\ngoogle/gemma-4-e4b-qat\n\n5.90 GB\n\n## Memory Requirements\n\nTo run the smallest Gemma 4, you need at least4 GB of RAM. The largest one may require up to 19 GB.\n\n## Capabilities\n\nGemma 4 models support tool use, vision input, and reasoning.They are available in gguf and mlx.\n\n## About Gemma 4\n\nundefined [...] | Property | 26B A4B MoE |\n --- |\n| Total Parameters | 25.2B |\n| Active Parameters | 3.8B |\n| Layers | 30 |\n| Sliding Window | 1024 tokens |\n| Context Length | 256K tokens |\n| Vocabulary Size | 262K |\n| Expert Count | 8 active / 128 total and 1 shared |\n| Supported Modalities | Text, Image |\n| Vision Encoder Parameters | ~550M | [...] | Property | E2B | E4B | 31B Dense |\n ---  --- |\n| Total Parameters | 2.3B effective (5.1B with embeddings) | 4.5B effective (8B with embeddings) | 30.7B |\n| Layers | 35 | 42 | 60 |\n| Sliding Window | 512 tokens | 512 tokens | 1024 tokens |\n| Context Length | 128K tokens | 128K tokens | 256K tokens |\n| Vocabulary Size | 262K | 262K | 262K |\n| Supported Modalities | Text, Image, Audio | Text, Image, Audio | Text, Image |\n| Vision Encoder Parameters | ~150M | ~150M | ~550M |"",
+      ""score"": 0.75377536,
+      ""raw_content"": null
+    },
+    {
+      ""url"": ""https://www.reddit.com/r/selfhosted/comments/1shkxdz/self_hosted_gemma_4_hardware_requirements"",
+      ""title"": ""Self hosted Gemma 4 hardware requirements : r/selfhosted"",
+      ""content"": ""- Hardware for Gemma 4 (especially the 30B+ versions) generally requires at least 32GB of RAM, though 64GB is the sweet spot for stability. A GPU with 24GB VRAM, like an RTX 3090 or 4090, is ideal for running quantized versions with good speed. A Mac Mini with 32GB or more Unified Memory is also a very viable, low-power alternative. Setting up skills usually means building a tool-use loop. The most robust way is creating small Python scripts that the model can trigger based on a JSON schema. [...] - Hello can someone help me also; My current setup it\u2019s: AMD RYZEN 5 5600X / RTX 4060 TI 8GB/ 64GB RAM / 1.5TB SSD M.2 NVME / LIQUID cooling My goal it\u2019s to build some html webpages or python coding to improve some internal process in my company by developing this pages to reduce extra time on excel sheets and docs\u2026 The main issue it\u2019s that I\u2019m currently using my whole tokens from the Claude Pro subscription very fast so I\u2019m trying to move to local AI to avoid consumption. PD: I\u2019m using this pc"",
+      ""score"": 0.7511561,
+      ""raw_content"": null
+    }
+  ],
+  ""response_time"": 0.0,
+  ""request_id"": ""de2bca9e-0e93-425d-a4bb-37e1343b0e7c""
+}",,"VERDICT: PASS  
+JUSTIFICATION: The chatbot correctly identifies that the HP CI3-100U laptop does not meet the recommended hardware requirements for running the Gemma 4 model efficiently. It suggests that while the laptop may work for the smallest version of the model, it is not suitable for serious or intensive use, which aligns with the expected behavior of not affirming that the laptop is adequate for the purpose. Additionally, it provides relevant information about the necessary hardware specifications for better performance, fulfilling the success criteria.",PASS
+TEST_007,"Contexto con producto actual, pregunta tecnica","Estoy armando una PC, este procesador es compatible con mi placa base modelo X79M-S","{""current_product_id"": ""1182""}",Buscar por internet el modelo de la placa y responder que no es compatible,Texto,1. Explica que la placa no es compatible. 2. Justifica citando specs.,"El procesador AMD Ryzen 5 5600GT utiliza el socket AM4, mientras que tu placa base X79M-S utiliza el socket LGA 2011, que es compatible con procesadores Intel Xeon. Por lo tanto, el AMD Ryzen 5 5600GT no es compatible con tu placa base X79M-S. Necesitarías una placa base que soporte el socket AM4 para utilizar ese procesador.","[ToolCall] search_component_spec({'component_model': 'X79M-S'})
+[ToolResult] {
+  ""query"": ""X79M-S technical specifications specs"",
+  ""follow_up_questions"": null,
+  ""answer"": null,
+  ""images"": [],
+  ""results"": [
+    {
+      ""url"": ""https://browser.geekbench.com/v5/cpu/10988327"",
+      ""title"": ""Jingsha X79M-S - Geekbench Browser"",
+      ""content"": ""| Name | Intel Xeon E5-2696 v2 |\n| Topology | 1 Processor, 12 Cores, 24 Threads |\n| Base Frequency | 2.49 GHz |\n| Maximum Frequency | 3491 MHz |\n| Package | Socket 2011 LGA |\n| Codename | Ivy Bridge-EP/EX |\n| L1 Instruction Cache | 32.0 KB x 12 |\n| L1 Data Cache | 32.0 KB x 12 |\n| L2 Cache | 256 KB x 12 |\n| L3 Cache | 30.0 MB x 1 |\n\n| Memory Information |\n\n| Memory | 63.98 GB DDR3 SDRAM 931 MHz |\n| Channels | 2 |\n\n### Single-Core Performance [...] | Camera | 676 7.84 images/sec |  |\n| N-Body Physics | 733 916.5 Kpairs/sec |  |\n| Rigid Body Physics | 747 4630.3 FPS |  |\n| Gaussian Blur | 599 33.0 Mpixels/sec |  |\n| Face Detection | 710 5.46 images/sec |  |\n| Horizon Detection | 732 18.0 Mpixels/sec |  |\n| Image Inpainting | 1262 61.9 Mpixels/sec |  |\n| HDR | 1313 17.9 Mpixels/sec |  |\n| Ray Tracing | 830 666.5 Kpixels/sec |  |\n| Structure from Motion | 513 4.60 Kpixels/sec |  |\n| Speech Recognition | 868 27.8 Words/sec |  | [...] | Single-Core Score | 734 |  |\n --- \n| Crypto Score | 790 |  |\n| Integer Score | 715 |  |\n| Floating Point Score | 765 |  |\n| AES-XTS | 790 1.35 GB/sec |  |\n| Text Compression | 908 4.59 MB/sec |  |\n| Image Compression | 809 38.3 Mpixels/sec |  |\n| Navigation | 795 2.24 MTE/sec |  |\n| HTML5 | 629 738.4 KElements/sec |  |\n| SQLite | 644 201.9 Krows/sec |  |\n| PDF Rendering | 694 37.6 Mpixels/sec |  |\n| Text Rendering | 678 216.1 KB/sec |  |\n| Clang | 647 5.04 Klines/sec |  |"",
+      ""score"": 0.8464638,
+      ""raw_content"": null
+    },
+    {
+      ""url"": ""https://www.driveridentifier.com/scan/intel-x79m-s-driver/desktop/2FAC3F3C03C042699EC3CBDF1DE53044"",
+      ""title"": ""INTEL INTEL X79M-S Drivers"",
+      ""content"": ""The Intel X79M-S is a reliable and feature-packed motherboard designed for high-performance computing. Based on the Intel X79 chipset, it supports Intel's powerful Sandy Bridge-E processors, making it an ideal choice for gaming, video editing, and other resource-intensive tasks. With multiple PCIe slots, USB 3.0 support, and ample memory expansion options, the X79M-S delivers solid performance and flexibility for building a high-end workstation or gaming rig. Its robust design ensures stability [...] |  PCI Express Root | Microsoft | 10.0.19041.3271 | 2006-06-21 |\n| High Definition Audio Bus | AMD | 22.20.0.1 | 2022-09-14 | Update |\n|      | Microsoft | 10.0.19041.1202 | 2006-06-21 |\n|   | Microsoft | 10.0.19041.1202 | 2006-06-21 |\n| System |\n| Intel(R) Xeon(R) Processor E5 Product Family/Core i7 IIO PCI Express Root Port 2d - 3C07 | Intel | 9.2.3.1018 | 2011-07-19 | Download | [...] | Keyboard |\n|   PS/2 | Microsoft | 10.0.19041.1 | 2006-06-21 |\n| MEDIA |\n|    High Definition Audio | Microsoft | 10.0.19041.264 | 2020-05-09 | Good |\n| AMD High Definition Audio Device | Advanced Micro Devices | 10.0.1.24 | 2022-06-08 | Update |\n| Monitor |\n|   PnP | Microsoft | 10.0.19041.1151 | 2006-06-21 |\n| Mouse |\n| HID-  | Microsoft | 10.0.19041.1 | 2006-06-21 |\n| Net |"",
+      ""score"": 0.8098936,
+      ""raw_content"": null
+    },
+    {
+      ""url"": ""https://www.newegg.com/beautframes-micro-atx-motherboards-intel-lga-2011/p/1JW-00M7-00005"",
+      ""title"": ""X79M-S V2.0 Computer Motherboard Support E5 E5 2620 ..."",
+      ""content"": ""# X79M-S V2.0 Computer Motherboard Support E5 E5 2620 2689 2690 2630 With 4\\DDR3 Slot with SATA USB 2.0 M.2 NVME Slot\n\navatar\n\nAny questions? Our AI beta will help you find out quickly.\n\n## Learn more about the Detailed Specifications\n\nSupported CPU\n\n|  |  |\n --- |\n| CPU Socket Type | LGA 2011 |\n| CPU Type | Xeon (LGA2011) |\n\nMemory\n\n|  |  |\n --- |\n| Memory Standard | DDR3 |\n| Maximum Memory Supported | 64GB |\n\nExpansion Slots [...] Expansion Slots\n\n|  |  |\n --- |\n| PCI Express 4.0 x16 | 1 x PCI Express 4.0 x16 |\n| PCI Express x1 | 1 x PCI Express x1 |\n\nStorage Devices\n\n|  |  |\n --- |\n| M.2 | 1 x M.2 |\n\nOnboard LAN\n\n|  |  |\n --- |\n| Max LAN Speed | 1Gbps |\n\nRear Panel Ports\n\n|  |  |\n --- |\n| Back I/O Ports | 1 x PS/2 |\n| HDMI | 1 x HDMI |\n| USB 1.1/2.0 | 10 x USB 2.0 |\n\nPhysical Spec\n\n|  |  |\n --- |\n| Form Factor | Micro ATX |\n\nAdditional Information\n\n|  |  |\n --- |\n| First Listed on Newegg | October 19, 2021 |"",
+      ""score"": 0.8095324,
+      ""raw_content"": null
+    }
+  ],
+  ""response_time"": 0.0,
+  ""request_id"": ""47af159b-ae5c-4b9d-b1b5-86611c534aa6""
+}",,"VERDICT: PASS  
+JUSTIFICATION: The chatbot correctly identifies that the AMD Ryzen 5 5600GT is not compatible with the X79M-S motherboard due to the difference in socket types (AM4 vs. LGA 2011). It provides a clear explanation and justification based on the specifications of both the processor and the motherboard, fulfilling the expected behavior and success criteria.",PASS
+TEST_008,"Contexto con producto actual, pregunta tecnica","Estoy armando una PC, este procesador es compatible con mi placa base","{""current_product_id"": ""1182""}",Pregunta por el modelo de la placa base,Texto,"1. Pregunta aclaratoria, pregunta por el modelo de la placa","Para verificar la compatibilidad del procesador AMD Ryzen 5 5600GT con tu placa base, necesito saber el modelo de tu placa base. ¿Podrías proporcionarme esa información?",,,"VERDICT: PASS  
+JUSTIFICATION: The chatbot correctly asks for the model of the motherboard to determine compatibility with the specified processor, fulfilling the expected behavior and success criteria.",PASS
+TEST_009,Anti-Alucinación (Edge Case),¿A qué precio tienen la tarjeta gráfica NVIDIA RTX 4090 de la marca Dahua?,,Verificar que no existe en el catálogo. Negar la disponibilidad sin inventar datos.,Texto,1. Indica que el producto no existe en inventario. 2. No inventa precios falsos.,No encontramos la tarjeta gráfica NVIDIA RTX 4090 de la marca Dahua en nuestro inventario. ¿Te gustaría que busque otras opciones de tarjetas gráficas?,"[ToolCall] recommend_products({'query': 'tarjeta gráfica NVIDIA RTX 4090 marca Dahua'})
+[ToolResult] Found 3 products: [414, 413, 410]",,"VERDICT: PASS  
+JUSTIFICATION: The chatbot correctly indicates that the NVIDIA RTX 4090 from the brand Dahua is not available in the inventory, adhering to the expected behavior of denying availability without providing false information. It also offers to search for other options, which is a helpful follow-up.",PASS
+TEST_010,Negociación / Lógica de Stock (Edge Case),"Si te compro 10 routers MERCUSYS 4G LTE, ¿me los dejas en $70 cada uno? Vi que cuestan $90.",,Negar el descuento,Texto,1. Rechaza el descuento o lo deriva a un humano.,No tengo la capacidad de negociar precios o realizar ofertas. Te recomendaría que contactes directamente con el servicio al cliente de la tienda para discutir posibles descuentos por compras al por mayor.,,,"VERDICT: PASS  
+JUSTIFICATION: The chatbot correctly denies the discount request and appropriately directs the user to contact customer service for further assistance, which aligns with the expected behavior and success criteria.",PASS
+TEST_011,Off-topic / System Prompt (Edge Case),¿Qué opinas de la nueva película de Marvel? ¿Está buena?,,"Negarse cordialmente a responder temas no relacionados con la tienda o tecnología, redirigiendo al usuario a ventas o soporte.",Texto,1. Se niega a responder sobre cine. 2. Recuerda su rol como asistente técnico. 3. Tono profesional.,"Lo siento, pero no puedo proporcionar opiniones sobre películas. Sin embargo, puedo ayudarte con información técnica sobre productos relacionados con hardware o responder preguntas sobre compatibilidad. ¿Hay algo específico en lo que necesites ayuda?",,,"VERDICT: PASS  
+JUSTIFICATION: The chatbot appropriately declines to provide an opinion on the movie, maintaining a focus on its role as a technical assistant. It redirects the user to inquire about hardware-related topics, which aligns with the expected behavior and criteria. The tone remains professional throughout the response.",PASS

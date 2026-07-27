@@ -22,9 +22,11 @@ SYSTEM_PROMPT = (
     "You help customers find products and answer hardware compatibility questions.\n\n"
     "Rules:\n"
     "1. Always respond in the same language the user writes in.\n"
-    '2. If the user asks about compatibility with their own hardware (e.g. "will this work '
-    'with my motherboard X"), look at the current_product context if available and use '
-    "search_component_spec to fetch specs for the user's external component.\n"
+    "2. If the user asks whether a product works with something they own or want to run "
+    '(e.g. "will this work with my motherboard X", "can this laptop run Gemma 4?"), '
+    "look at the current_product context if available and use search_component_spec to "
+    "fetch the relevant specs or requirements. Never ask the user for information you can "
+    "look up yourself.\n"
     "3. If the user wants product recommendations, refine the query into precise technical "
     'terms in the same language. For example, "celulares baratos" becomes "telefono movil '
     'gama baja", NOT "smartphone". Do NOT translate to another language. '
@@ -79,8 +81,9 @@ def _build_system_message(product: Product | None = None) -> str:
             f"Name: {product.get('name', 'N/A')}\n"
             f"Description: {product.get('description', 'N/A')}\n"
             f"Price: ${product.get('price', 'N/A')}\n"
-            f"If the user asks about compatibility, use search_component_spec "
-            f"to look up their hardware."
+            f"If the user asks about compatibility with external hardware or whether "
+            f"this product can run specific software/AI models, use search_component_spec "
+            f"to look up the requirements, then compare them against this product's specs."
         )
     return prompt
 

@@ -10,11 +10,22 @@ logger = structlog.get_logger("ramon.chatbot.tools")
 def make_search_component_spec(tavily_client: TavilySearch):
     @tool
     async def search_component_spec(component_model: str) -> str:
-        """Fetch technical specifications for an external hardware component from the web.
+        """Fetch technical specifications or system requirements from the web.
 
-        Use when a user asks about compatibility with their own motherboard, CPU, GPU
-        or other component so that you can compare specs against the product they are
-        currently viewing on the store."""
+        Use this tool whenever the user asks whether a product is compatible with something
+        they already own or want to run. This includes:
+        - Hardware compatibility: motherboard, CPU, GPU, RAM, etc. (e.g. "is this CPU compatible
+          with my motherboard X79?")
+        - Software/model requirements: AI models, operating systems, games, etc.
+          (e.g. "can this laptop run Gemma 4?", "will this PC handle Windows 11?")
+
+        Pass a descriptive search query. For hardware, use the component model name
+        (e.g. "X79M-S"). For software or AI models, include "system requirements" in the
+        query (e.g. "Gemma 4 AI model system requirements GPU RAM CPU").
+
+        Always use the results to compare against the current product's specs before
+        answering. Never ask the user for requirements you can look up yourself.
+        """
         logger.debug("search_component_spec.query", component_model=component_model)
 
         try:

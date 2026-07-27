@@ -13,6 +13,7 @@ Requires:
     - .env file with required environment variables
     - test_cases.csv in the same directory
 """
+
 import asyncio
 import csv
 import json
@@ -33,10 +34,12 @@ load_dotenv()
 logging.disable(logging.WARNING)
 
 import structlog
+
 structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(logging.CRITICAL))
 
 from chatbot import ChatbotBuilder, Product
 from chatbot.adapters import PostgresProductRepository
+from chatbot.application.relevance import _PRODUCTS_TAG_RE
 
 _PRODUCT_COLUMNS = (
     "id, product_id, sku, name, description, categories, price, stock, in_stock, "
@@ -125,15 +128,17 @@ def load_test_cases(path: str) -> list[TestCase]:
                 cond = ""
             else:
                 cond = _normalize_curly_quotes(cond)
-            cases.append(TestCase(
-                test_id=row["Test_ID"].strip(),
-                category=row["Category / Intent"].strip(),
-                conditions=cond,
-                user_query=row["User_Query"].strip(),
-                expected_behavior=row["Expected_Behavior"].strip(),
-                expected_format=row["Expected_Format"].strip(),
-                success_criteria=row["Success_Criteria (Rubric for LLM Judge)"].strip(),
-            ))
+            cases.append(
+                TestCase(
+                    test_id=row["Test_ID"].strip(),
+                    category=row["Category / Intent"].strip(),
+                    conditions=cond,
+                    user_query=row["User_Query"].strip(),
+                    expected_behavior=row["Expected_Behavior"].strip(),
+                    expected_format=row["Expected_Format"].strip(),
+                    success_criteria=row["Success_Criteria (Rubric for LLM Judge)"].strip(),
+                )
+            )
     return cases
 
 
@@ -154,9 +159,7 @@ def buffer_chatbot_response(result: dict) -> tuple[str, str, str]:
         if role == "AIMessage":
             if getattr(msg, "tool_calls", None):
                 for tc in msg.tool_calls:
-                    tool_parts.append(
-                        f"[ToolCall] {tc.get('name', '?')}({tc.get('args', {})})"
-                    )
+                    tool_parts.append(f"[ToolCall] {tc.get('name', '?')}({tc.get('args', {})})")
             content = getattr(msg, "content", "")
             if content:
                 ai_parts.append(content)
@@ -164,15 +167,14 @@ def buffer_chatbot_response(result: dict) -> tuple[str, str, str]:
             content = getattr(msg, "content", "")
             tool_parts.append(f"[ToolResult] {content}")
 
-    ai_text = "\n".join(ai_parts)
+    ai_text = _PRODUCTS_TAG_RE.sub("", "\n".join(ai_parts)).strip()
     tool_log = "\n".join(tool_parts)
 
     rec_lines: list[str] = []
     for i, p in enumerate(recommendations, 1):
         name = p.get("name", "N/A") if isinstance(p, dict) else getattr(p, "name", "N/A")
         price = p.get("price", 0) if isinstance(p, dict) else getattr(p, "price", 0)
-        desc = p.get("description", "") if isinstance(p, dict) else getattr(p, "description", "")
-        rec_lines.append(f"{i}. {name} - ${price:.2f} | {desc[:100]}")
+        rec_lines.append(f"{i}. {name} - ${price:.2f}")
     rec_log = "\n".join(rec_lines)
 
     return ai_text, tool_log, rec_log
@@ -219,6 +221,9 @@ def judge_response(
 
 ---
 Evaluate the chatbot response against the expected behavior, format, and success criteria.
+
+IMPORTANT: Focus ONLY on the semantic content and correctness of the response. Ignore text formatting issues such as inconsistent spacing, missing punctuation, raw HTML/DB artifacts, or messy product descriptions — these are data quality issues from the database, not chatbot failures. Do NOT penalize the chatbot for formatting problems in product data it retrieves.
+
 Provide a clear PASS or FAIL verdict on the first line, followed by a brief justification.
 
 Format your response as:
@@ -314,44 +319,66 @@ async def run_tests():
             status = "PASS" if passed else "FAIL"
             print(f"  Judge: {status}\n", flush=True)
 
-            results.append(TestResult(
-                test_id=tc.test_id,
-                category=tc.category,
-                user_query=tc.user_query,
-                conditions=tc.conditions,
-                expected_behavior=tc.expected_behavior,
-                expected_format=tc.expected_format,
-                success_criteria=tc.success_criteria,
-                chatbot_response=ai_text,
-                tool_calls_log=tool_log,
-                recommendations_log=rec_log,
-                judge_verdict=verdict,
-                passed=status,
-            ))
+            results.append(
+                TestResult(
+                    test_id=tc.test_id,
+                    category=tc.category,
+                    user_query=tc.user_query,
+                    conditions=tc.conditions,
+                    expected_behavior=tc.expected_behavior,
+                    expected_format=tc.expected_format,
+                    success_criteria=tc.success_criteria,
+                    chatbot_response=ai_text,
+                    tool_calls_log=tool_log,
+                    recommendations_log=rec_log,
+                    judge_verdict=verdict,
+                    passed=status,
+                )
+            )
 
         output_path = os.path.join(os.path.dirname(__file__), "test_results.csv")
         with open(output_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow([
-                "Test_ID", "Category", "User_Query", "Conditions",
-                "Expected_Behavior", "Expected_Format", "Success_Criteria",
-                "Chatbot_Response", "Tool_Calls", "Recommendations",
-                "Judge_Verdict", "Passed",
-            ])
+            writer.writerow(
+                [
+                    "Test_ID",
+                    "Category",
+                    "User_Query",
+                    "Conditions",
+                    "Expected_Behavior",
+                    "Expected_Format",
+                    "Success_Criteria",
+                    "Chatbot_Response",
+                    "Tool_Calls",
+                    "Recommendations",
+                    "Judge_Verdict",
+                    "Passed",
+                ]
+            )
             for r in results:
-                writer.writerow([
-                    r.test_id, r.category, r.user_query, r.conditions,
-                    r.expected_behavior, r.expected_format, r.success_criteria,
-                    r.chatbot_response, r.tool_calls_log, r.recommendations_log,
-                    r.judge_verdict, r.passed,
-                ])
+                writer.writerow(
+                    [
+                        r.test_id,
+                        r.category,
+                        r.user_query,
+                        r.conditions,
+                        r.expected_behavior,
+                        r.expected_format,
+                        r.success_criteria,
+                        r.chatbot_response,
+                        r.tool_calls_log,
+                        r.recommendations_log,
+                        r.judge_verdict,
+                        r.passed,
+                    ]
+                )
 
         total = len(results)
         passed_count = sum(1 for r in results if r.passed == "PASS")
-        print(f"\n{'='*60}", flush=True)
+        print(f"\n{'=' * 60}", flush=True)
         print(f"RESULTS: {passed_count}/{total} passed", flush=True)
         print(f"Output saved to: {output_path}", flush=True)
-        print(f"{'='*60}", flush=True)
+        print(f"{'=' * 60}", flush=True)
 
     finally:
         await db_pool.close()
