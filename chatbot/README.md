@@ -5,7 +5,24 @@ Shared chatbot library for RAMon — a technical assistance chatbot for computer
 This package provides the core chatbot functionality using LangGraph, OpenAI, pgvector,
 and Tavily. It is designed to be used by both the backend server and CLI tools.
 
-## Architecture
+## Development
+
+### Running Unit Tests
+
+```bash
+cd chatbot
+pip install -e ".[dev]"
+pytest
+```
+
+### Linting
+
+```bash
+ruff check chatbot/ tests/
+ruff format --check chatbot/ tests/
+```
+
+### Architecture
 
 The package follows clean architecture principles with three layers:
 

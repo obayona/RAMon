@@ -1,38 +1,3 @@
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
-
-[project]
-name = "ramon-chatbot"
-version = "0.1.0"
-description = "RAMon Chatbot - Technical assistance chatbot for computer e-commerce"
-requires-python = ">=3.10"
-dependencies = [
-    "langchain-core>=1.0.0",
-    "langchain-openai>=1.0.0",
-    "langchain-tavily>=0.2.0",
-    "langgraph>=1.0.0",
-    "langgraph-checkpoint>=4.0.0",
-    "langgraph-checkpoint-postgres>=2.0.0",
-    "langchain_postgres>=0.0.17",
-    "openai>=2.0.0",
-    "python-dotenv>=1.0.0",
-    "psycopg[binary,pool]>=3.1.0",
-    "pgvector",
-    "structlog>=24.0",
-]
-
-[project.optional-dependencies]
-dev = [
-    "ipython",
-    "pygraphviz",
-    "pytest>=8.0",
-    "ruff>=0.8",
-]
-
-[tool.setuptools.packages.find]
-include = ["chatbot*"]
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
@@ -56,7 +21,9 @@ ignore = [
     "B008",    # Depends() in defaults — FastAPI pattern
     "B904",    # raise from err — existing code missing chain
     "W293",    # Whitespace in blank lines — docstrings
+    "F841",    # Unused variable — existing code assigns but doesn't use
+    "SIM105",  # contextlib.suppress — existing code uses try/except/pass
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["chatbot"]
+known-first-party = ["src", "chatbot"]

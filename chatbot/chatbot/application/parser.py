@@ -1,11 +1,14 @@
 """Streaming parser for extracting product markers from LLM output."""
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, TypedDict
 
-from chatbot.application.relevance import filter_by_ids, parse_relevant_ids
+from chatbot.application.relevance import (
+    _PRODUCTS_TAG_RE,
+    filter_by_ids,
+    parse_relevant_ids,
+)
 
 
 class TextEvent(TypedDict):
@@ -23,8 +26,6 @@ class ProductsEvent(TypedDict):
 
 
 ParsedEvent = TextEvent | ProductsEvent
-
-_PRODUCTS_TAG_RE = re.compile(r'<products\s+ids="([^"]*)"\s*/>')
 
 
 @dataclass

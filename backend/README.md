@@ -156,6 +156,37 @@ migrations/
 └── ...
 ```
 
+## Development
+
+### Running Unit Tests
+
+```bash
+cd backend
+pip install -r requirements.txt
+pip install pytest ruff
+pytest
+```
+
+### Linting
+
+```bash
+ruff check src/ tests/
+ruff format --check src/ tests/
+```
+
+### Running E2E Tests
+
+E2E tests require a live database and OpenAI API key. They use an LLM judge to evaluate chatbot responses against test cases from `e2e/test_cases.csv`.
+
+```bash
+cd backend
+pip install -r requirements.txt
+cp .env.example .env  # add your API keys
+python e2e/test_chatbot.py
+```
+
+Results are saved to `e2e/test_results.csv`.
+
 ## Project Structure
 
 ```
