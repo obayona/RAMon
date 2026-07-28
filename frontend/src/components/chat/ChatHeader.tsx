@@ -1,6 +1,19 @@
-import { Bot } from 'lucide-react';
+import { Bot, Funnel, Maximize2, Minimize2 } from 'lucide-react';
+import { Button } from '../ui/button';
 
-export default function ChatHeader() {
+interface Props {
+   expanded: boolean;
+   filtersOpen: boolean;
+   toggleExpanded: () => void;
+   toggleFilters: () => void;
+}
+
+export default function ChatHeader({
+   expanded,
+   toggleExpanded,
+   filtersOpen,
+   toggleFilters,
+}: Props) {
    return (
       <header className='flex items-center justify-between border-b px-6 py-4'>
          <div className='flex items-center gap-4'>
@@ -16,9 +29,12 @@ export default function ChatHeader() {
          </div>
 
          <div className='flex items-center gap-2'>
-            <span className='h-2 w-2 rounded-full bg-green-500' />
-
-            <span className='text-sm text-slate-500'>Online</span>
+            <Button variant='ghost' size='icon' onClick={toggleFilters}>
+               <Funnel className={filtersOpen ? 'text-blue-600' : ''} />
+            </Button>
+            <Button size='icon' variant='ghost' onClick={toggleExpanded}>
+               {expanded ? <Minimize2 /> : <Maximize2 />}
+            </Button>
          </div>
       </header>
    );

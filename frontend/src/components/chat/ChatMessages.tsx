@@ -3,50 +3,6 @@ import MessageBubble from '../messages/MessageBubble';
 import { WelcomeScreen } from '../helpers/WelcomeScreen';
 import { useEffect, useRef } from 'react';
 
-// const messages: ChatMessage[] = [
-//    {
-//       id: '1',
-//       role: 'assistant',
-//       content: '¡Hola! Soy RAMon. ¿En qué puedo ayudarte hoy?',
-//    },
-//    {
-//       id: '2',
-//       role: 'user',
-//       content: 'Explícame qué es un switch PoE.',
-//    },
-//    {
-//       id: '3',
-//       role: 'assistant',
-//       content:
-//          'Un switch PoE permite transmitir datos y alimentación eléctrica por el mismo cable Ethernet.',
-//    },
-//    {
-//       id: '4',
-//       role: 'assistant',
-//       content: 'Aqui tienes 3 productos que relacionados a tu request',
-//       products: [
-//          {
-//             id: 1,
-//             description: 'Camera sony with 20 megapixels, bluetooth, strap.',
-//             name: 'Camara Sony',
-//             price: 15000,
-//          },
-//          {
-//             id: 2,
-//             description: 'Camera sony with 20 megapixels, bluetooth, strap.',
-//             name: 'Camara Sony',
-//             price: 15000,
-//          },
-//          {
-//             id: 3,
-//             description: 'Camera sony with 20 megapixels, bluetooth, strap.',
-//             name: 'Camara Sony',
-//             price: 15000,
-//          },
-//       ],
-//    },
-// ];
-
 interface Props {
    messages: ChatMessage[];
    loading: boolean;
