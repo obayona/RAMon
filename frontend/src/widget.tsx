@@ -5,7 +5,6 @@ import { getConfig } from './widget/getConfig';
 import styles from './widget.css?inline';
 
 const config = getConfig();
-console.log(styles);
 
 // Create host element
 const hostElement = document.createElement('div');

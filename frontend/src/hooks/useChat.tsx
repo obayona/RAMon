@@ -69,7 +69,6 @@ export function useChat() {
             token,
             chatId: chatId.current,
          });
-         console.log(history)
          setMessages(history);
       } catch (err) {
          console.error(err);
@@ -116,7 +115,7 @@ export function useChat() {
          JSON.stringify({
             message: text,
 
-            chat_id: chatId,
+            chat_id: chatId.current,
 
             current_product_id: productId,
          }),
